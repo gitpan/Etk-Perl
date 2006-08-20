@@ -5,6 +5,7 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#define NEED_newRV_noinc
 #include "ppport.h"
 
 #ifdef _
@@ -13,7 +14,9 @@
 
 #include <Etk.h>
 
-void __etk_perl_inheritance_init();
+void __etk_perl_init();
+void FreeEtkObject(Etk_Object *object);
+void FreeObjectCache();
 
 
 SV *			newSVColor(Etk_Color col);

@@ -1,6 +1,93 @@
-
-
 #include "EtkTypes.h"
+
+
+#if 0
+static HV * ObjectCache = NULL;
+
+static void SetEtkObject(SV * perl_object, Etk_Object * object)
+{
+	if (!object || !SvOK(perl_object))
+		return;
+	
+#ifdef DEBUG
+	printf(">> Adding object (%p) with perl object (%p)\n", object, perl_object);
+#endif
+
+	char * key;
+	int len = 10;
+	key = (char *)malloc(sizeof(char) * 10);
+	snprintf(key, 10, "%p", object);
+	printf("\tKEY: %s\n", key);
+
+	hv_store(ObjectCache, key, len, perl_object, 0);
+	
+}
+
+static SV * GetEtkObject(Etk_Object * object) 
+{
+
+	SV * s = NULL;
+#ifdef DEBUG
+	printf(">> Trying to find object (%p)\n", object);
+#endif
+
+	char * key;
+	int len = 10;
+	SV **sv;
+	key = (char *)malloc(sizeof(char) * 10);
+	snprintf(key, 10, "%p", object);
+	printf("\tKEY: %s\n", key);
+	
+	sv = hv_fetch(ObjectCache, key, len, 0);
+	if (sv && SvOK(*sv)) 
+		s = SvREFCNT_inc(*sv);
+
+	printf("  GOT: %p\n", s);
+
+	return s;
+}
+
+void FreeEtkObject(Etk_Object *object)
+{
+	return;
+
+	char * key;
+	int len = 10;
+#ifdef DEBUG
+	printf(">> Trying to free object (%p)\n", object);
+#endif
+	
+	key = (char *)malloc(sizeof(char) * 10);
+	snprintf(key, 10, "%p", object);
+	printf("\tKEY: %s\n", key);
+	if (hv_exists(ObjectCache, key, len)){
+		SV ** sv;
+		int ref = -1;
+		sv = hv_fetch(ObjectCache, key, len, 0);
+		if (sv) {
+			SV * s;
+			s = *sv;
+			ref = SvREFCNT(s);
+			printf(">\n");
+			if (ref == 1)
+				hv_delete(ObjectCache, key, len, G_DISCARD);
+			else
+				SvREFCNT_dec(s);
+			printf(">\n");
+		}
+		printf("  DELETE ref(%i) (%p)\n", ref, *sv);
+			
+	}
+
+}
+
+void FreeObjectCache()
+{
+	hv_undef(ObjectCache);
+	ObjectCache = NULL;
+}
+
+#endif
 
 void * SvObj(SV *o, char * classname)
 {
@@ -27,13 +114,17 @@ SV * newSVObj(void *object, char * classname, int * newref)
 #ifdef DEBUG
 	printf(">> Creating new object from (%p) of class (%s)\n", object, classname);
 #endif
-	HV * previous;
+	SV * previous;
 	SV * result;
 
 	if (!object)
 		return newSVsv(&PL_sv_undef);
 
-	// do previous thingy
+	//if (newref) *newref = 0;
+
+	//previous = GetEtkObject((Etk_Object *)object);
+	//if (previous)
+	//	return previous;
 	
 	HV * h = newHV();
 	hv_store(h, "ETK", 3, newSViv((long)object), 0);
@@ -41,13 +132,19 @@ SV * newSVObj(void *object, char * classname, int * newref)
 	sv_bless(result, gv_stashpv(classname, FALSE));
 	SvREFCNT_dec(h);
 
+	//SetEtkObject(result, object);
+
+	//if (newref) *newref = 1;
+	
+	//printf("\t(%p)\n", result);
 	return result;
 
 }
 
 
-void __etk_perl_inheritance_init() {
+void __etk_perl_init() {
 
+//	ObjectCache = newHV();
 
 #define __(A, B)\
 	av_push(get_av("Etk::"A"::ISA", TRUE), newSVpv("Etk::"B, strlen("Etk::"B)));
@@ -121,15 +218,12 @@ void __etk_perl_inheritance_init() {
 }
 
 
-// main
-
-
 SV * newSVColor(Etk_Color col) { 
 
 	HV * hv;
 	SV * color;
 
-	hv = (HV*)sv_2mortal((SV*)newHV());
+	hv = newHV();
 
 	color = newSViv(col.r);
         hv_store(hv, "r", strlen("r"), color, 0);
@@ -140,7 +234,7 @@ SV * newSVColor(Etk_Color col) {
 	color = newSViv(col.a);
         hv_store(hv, "a", strlen("a"), color, 0);
 	
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 Etk_Color SvColor(SV *color) { 
@@ -213,7 +307,7 @@ SV * newSVGeometry(Etk_Geometry geo) {
 	HV * hv;
 	SV * geometry;
 	
-	hv = (HV*)sv_2mortal((SV*)newHV());
+	hv = newHV();
 
 	geometry = newSViv(geo.x);
         hv_store(hv, "x", strlen("x"), geometry, 0);
@@ -224,7 +318,7 @@ SV * newSVGeometry(Etk_Geometry geo) {
 	geometry = newSViv(geo.h);
         hv_store(hv, "h", strlen("h"), geometry, 0);
 	
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 Etk_Size * SvSizePtr(SV * size) {
@@ -256,14 +350,14 @@ SV * newSVSizePtr(Etk_Size *size) {
 	HV *hv;
 	SV * sv;
 
-	hv = (HV*)sv_2mortal((SV*)newHV());
+	hv = newHV();
 
 	sv = newSViv(size->w);
 	hv_store(hv, "w", strlen("w"), sv, 0);
 	sv = newSViv(size->h);
 	hv_store(hv, "h", strlen("h"), sv, 0);
 
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 Evas_List * SvEvasList(SV *sv) {
@@ -296,7 +390,7 @@ SV * newSVEvasList(Evas_List *list) {
 	for (l = list; l; l = l->next) 
 		av_push(av, newSVEtkWidgetPtr((Etk_Widget *)(l->data)));
 
-	return newRV((SV*)av);
+	return newRV_noinc((SV*)av);
 
 }
 
@@ -310,7 +404,7 @@ SV * newSVCharEvasList(Evas_List *list) {
 	for (l = list; l; l = l->next) 
 		av_push(av, newSVpv((char *)(l->data), 0));
 
-	return newRV((SV*)av);
+	return newRV_noinc((SV*)av);
 
 }
 
@@ -470,7 +564,7 @@ SV * newSVEventKeyUpDown(Etk_Event_Key_Up_Down *ev) {
 	S_STORE("string", ev->string)
 	I_STORE("timestamp", newSVuv(ev->timestamp))
 
-	return newRV((SV*)hv);
+	return newRV_inc((SV*)hv);
 }
 
 SV * newSVEventMouseWheel(Etk_Event_Mouse_Wheel *ev) {
@@ -486,7 +580,7 @@ SV * newSVEventMouseWheel(Etk_Event_Mouse_Wheel *ev) {
 	I_STORE("widget.y", newSViv(ev->widget.y))
 	I_STORE("timestamp", newSVuv(ev->timestamp))
 
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 SV * newSVEventMouseMove(Etk_Event_Mouse_Move *ev) {
@@ -505,7 +599,7 @@ SV * newSVEventMouseMove(Etk_Event_Mouse_Move *ev) {
 	I_STORE("prev.widget.y", newSViv(ev->prev.widget.y))
 	I_STORE("timestamp", newSVuv(ev->timestamp))
 
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 SV * newSVEventMouseUpDown(Etk_Event_Mouse_Up_Down *ev) {
@@ -520,7 +614,7 @@ SV * newSVEventMouseUpDown(Etk_Event_Mouse_Up_Down *ev) {
 	I_STORE("widget.y", newSViv(ev->widget.y))
 	I_STORE("timestamp", newSVuv(ev->timestamp))
 
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 SV * newSVEventMouseInOut(Etk_Event_Mouse_In_Out *ev) {
@@ -535,7 +629,7 @@ SV * newSVEventMouseInOut(Etk_Event_Mouse_In_Out *ev) {
 	I_STORE("widget.y", newSViv(ev->widget.y))
 	I_STORE("timestamp", newSVuv(ev->timestamp))
 
-	return newRV((SV*)hv);
+	return newRV_noinc((SV*)hv);
 }
 
 #undef S_STORE

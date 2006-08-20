@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 require XSLoader;
 XSLoader::load('Etk', $VERSION);
@@ -16,6 +16,23 @@ Etk::Init();
 END {
 	Etk::Shutdown();
 }
+
+
+package Etk::Tree;
+
+sub ColNew {
+	my ($tree, $title, $model, $width) = @_;
+	my $col = col_new($tree, $title, $model, $width);
+	push @{$tree->{_COLS}}, $col;
+	return $col;
+}
+
+sub NthColGet {
+	my $self = shift;
+	my $nth = shift || 0;
+	return $self->{_COLS}->[$nth];
+}
+
 
 1;
 __END__
@@ -29,7 +46,8 @@ Etk - Perl bindings for the Enlightened ToolKit (Etk)
   use Etk;
 
   my $win = Etk::Window->new();
-  my $button = Etk::Button->new("Click me!");
+  my $button = Etk::Button->new();
+  $button->LabelSet("Click me!");
   $win->Add($button);
   $win->ShowAll();
 
@@ -46,11 +64,13 @@ This module allows the use of Etk from within Perl. You can use them in one
 of two ways, either by using the object oriented approach or directly by
 calling the functions (although this is not recommended).
 
-=head2 EXPORT
+=head1 EXPORT
 
 None by default.
 
 =head1 SEE ALSO
+
+L<Etk::Constants>
 
 Etk documentation is available as Doxygen or in the Etk Explained book:
 http://hisham.cc/etk_explained.pdf
