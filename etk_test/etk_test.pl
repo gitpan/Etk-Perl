@@ -268,8 +268,8 @@ sub image_window_show
     
     $table->AttachDefault($image1, 0, 0, 0, 0);
     $table->AttachDefault($image2, 1, 1, 0, 0);
-    $table->Attach($label1, 0, 0, 1, 1, 2, 0, HExpand);
-    $table->Attach($label2, 1, 1, 1, 1, 2, 0, HExpand);    
+    $table->Attach($label1, 0, 0, 1, 1, 2, 0, TableHExpand);
+    $table->Attach($label2, 1, 1, 1, 1, 2, 0, TableHExpand);    
     
     $win->Add($table);
     $win->ShowAll();
@@ -302,7 +302,7 @@ sub entry_window_show
     $button2->LabelSet("Toggle password");
     $button2->SignalConnect("clicked",
     	sub {
-		$entry->PasswordSet(!$entry->PasswordGet());
+		$entry->PasswordModeSet(!$entry->PasswordModeGet());
 	}
 	);
     $hbox->Append($button2);
@@ -616,12 +616,28 @@ sub menu_window_show
 {
     my $win = Etk::Window->new();
     $win->TitleSet("Etk-Perl Menu Test");
-    $win->SizeRequestSet(300, 200);
+    $win->SizeRequestSet(325, 240);
     my $box = Etk::VBox->new(0, 0);
 
     my $menubar = Etk::Menu::Bar->new();
 
     $box->Append($menubar);
+
+    my $toolbar = Etk::Toolbar->new();
+    $box->Append($toolbar);
+
+    $toolbar->Append(Etk::Button::new_from_stock(EditCopy));
+    $toolbar->Append(Etk::Button::new_from_stock(EditCut));
+    $toolbar->Append(Etk::Button::new_from_stock(EditPaste));
+
+    $toolbar->Append(Etk::VSeparator->new());
+
+    $toolbar->Append(Etk::Button::new_from_stock(EditUndo));
+    $toolbar->Append(Etk::Button::new_from_stock(EditRedo));
+
+    $toolbar->Append(Etk::VSeparator->new());
+
+    $toolbar->Append(Etk::Button::new_from_stock(EditFind));
 
     my $label = Etk::Label->new("Click me :)");
     $label->AlignmentSet(0.5, 0.5);
@@ -825,6 +841,7 @@ sub iconbox_window_show
     my $win = Etk::Window->new();
     $win->TitleSet("Etk-Perl Iconbox Test");
     $win->SizeRequestSet(100, 100);
+    $win->Resize(600, 330);
     
     $_iconbox_folder = "";    
     my $iconbox = Etk::Iconbox->new();
@@ -833,12 +850,13 @@ sub iconbox_window_show
     $model->IconGeometrySet(20, 0, 130, 16, 0.0, 0.5);
     _iconbox_folder_set($iconbox, "");
     
-    $iconbox->SignalConnect("mouse_up", 
+    $iconbox->SignalConnect("mouse_down", 
 	sub {
 	    my $self = shift;
 	    my $event = shift;
-	    my $icon = $iconbox->IconGetAtXy($event->{canvas_x},
-		$event->{canvas_y}, 0, 1, 1);
+	    return unless $event->{flags} & MouseDoubleClick;
+	    my $icon = $iconbox->IconGetAtXy($event->{"canvas.x"},
+		$event->{"canvas.y"}, 0, 1, 1);
 	    return if($icon == undef);
 	    if (-d $_iconbox_folder."/".$icon->LabelGet())
 	    {

@@ -1,16 +1,19 @@
 TODO:
 	- callback system needs to convert event structs to perl equivalents 
-	- port evas key modifiers and locks
 	- perldoc everything
 	- complete Tests
+		* Combobox
+		* TextBlock
+		* Tooltips
+		* Toplevel_Widget
+		* Tree
+		* Window
+		* Widget
 	- Check for memory usage (I'm not sure if we're leaking or not,
 	  need to do some tests for that)
 	- Fix Combobox append functions (waiting for some functionality in etk)
 
 BUGS:
-	- make test is defining PERL_DL_NONLAZY=1 for some reason and
-	  fails to load the library, for now you can run:
-	  $ perl -MExtUtils::Command::MM -e "test_harness(0, 'blib/lib', 'blib/arch')" t/Etk/*.t
 
 Pending:
 	-etk_canvas.h

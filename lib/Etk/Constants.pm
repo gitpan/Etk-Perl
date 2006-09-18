@@ -48,7 +48,12 @@ our %EXPORT_TAGS = (
    table	=> [qw/TableNone TableHFill TableVFill TableHExpand TableVExpand
     TableFill TableExpand TableExpandFill/],
    colorpicker	=> [qw/ModeH ModeS ModeV ModeR ModeG ModeB/],
-
+   mouse	=> [qw/ModifierNone ModifierCtrl ModifierAlt ModifierShift ModifierWin
+    LockNone LockNum LockCaps LockScroll
+    MouseNone MouseDoubleClick MouseTripleClick/],
+   toolbar	=> [qw/ToolbarIcons ToolbarText ToolbarBothVert ToolbarBothHoriz 
+    ToolbarDefault ToolbarHoriz ToolbarVert/],
+   button	=> [qw/ButtonIcon ButtonText ButtonBothVert ButtonBothHoriz/],
    );
 
 my @all = ();
@@ -186,4 +191,53 @@ use constant {
 	TableExapnd	=> (1<<2) | (1<<3),
 	TableExpandFill	=> (1<<0) | (1<<1) | (1<<2) | (1<<3)
 
-}
+};
+
+# events
+use constant {
+   ModifierNone => 0,
+   ModifierCtrl => 1 << 0, 
+   ModifierAlt => 1 << 1, 
+   ModifierShift => 1 << 2, 
+   ModifierWin => 1 << 3, 
+};
+
+use constant {
+   LockNone => 0,
+   LockNum => 1 << 0, 
+   LockCaps => 1 << 1, 
+   LockScroll => 1 << 2, 
+};
+
+use constant {
+   MouseNone => 0,
+   MouseDoubleClick => 1 << 0, 
+   MouseTripleClick => 1 << 1, 
+};
+
+
+# toolbar
+use constant {
+   ToolbarIcons => 0,
+   ToolbarText  => 1,
+   ToolbarBothVert => 2,
+   ToolbarBothHoriz => 3,
+   ToolbarDefault => 4,
+
+   ToolbarHoriz => 0,
+   ToolbarVert =>  1,
+
+};
+
+#button
+use constant {
+   ButtonIcon => 0,
+   ButtonText => 1,
+   ButtonBothVert => 2,
+   ButtonBothHoriz => 3
+};
+
+
+
+
+

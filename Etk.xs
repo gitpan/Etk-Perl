@@ -34,6 +34,8 @@ notification_callback(Etk_Object * object, const char * property_name, void * da
    ncb = data;
 
    PUSHMARK(SP);
+   XPUSHs(sv_2mortal(newSVObject(object)));
+   XPUSHs(sv_2mortal(newSVpv(property_name, strlen(property_name))));
    XPUSHs(sv_2mortal(newSVsv(ncb->perl_data)));
    PUTBACK;
 
@@ -350,10 +352,10 @@ Etk_Tree_Col * col, void * data )
    cbd = data;
    
    PUSHMARK(SP);  	  
-   XPUSHs(sv_2mortal(newSVEtkTreePtr(tree)));
-   XPUSHs(sv_2mortal(newSVEtkTreeRowPtr(row1)));
-   XPUSHs(sv_2mortal(newSVEtkTreeRowPtr(row2)));
-   XPUSHs(sv_2mortal(newSVEtkTreeColPtr(col)));
+   XPUSHs(sv_2mortal(newSVObj(tree, getClass("Etk_Tree"))));
+   XPUSHs(sv_2mortal(newSVObj(row1, getClass("Etk_Tree_Row"))));
+   XPUSHs(sv_2mortal(newSVObj(row2, getClass("Etk_Tree_Row"))));
+   XPUSHs(sv_2mortal(newSVObj(col, getClass("Etk_Tree_Col"))));
    XPUSHs(sv_2mortal(newSVsv(cbd->perl_data)));
    PUTBACK;
 
@@ -468,7 +470,7 @@ etk_box_child_packing_get(box, child)
        int 	        padding;
        
        etk_box_child_packing_get(box, child, &fill, &padding);
-       EXTEND(SP, 4);
+       EXTEND(SP, 2);
        PUSHs(sv_2mortal(newSViv(fill)));
        PUSHs(sv_2mortal(newSViv(padding)));
 
@@ -480,6 +482,30 @@ etk_box_child_packing_set(box, child, fill, padding=0)
 	int	padding
       ALIAS:
 	ChildPackingSet=1
+
+void
+etk_box_child_position_get(box, child)
+	Etk_Box *	box
+	Etk_Widget *	child
+      ALIAS:
+	ChildPositionGet=1
+     PPCODE:
+       Etk_Box_Group   	group;
+       int 	        pos;
+       
+       etk_box_child_position_get(box, child, &group, &pos);
+       EXTEND(SP, 2);
+       PUSHs(sv_2mortal(newSViv(group)));
+       PUSHs(sv_2mortal(newSViv(pos)));
+
+void
+etk_box_child_position_set(box, child, group, pos)
+	Etk_Box *	box
+	Etk_Widget *	child
+	Etk_Box_Group	group
+	int	pos
+	ALIAS:
+	ChildPositionSet=1
 
 Etk_Bool
 etk_box_homogeneous_get(box)
@@ -536,6 +562,14 @@ etk_box_insert_at(box, child, group, pos, fill=ETK_BOX_NONE, padding=0)
      ALIAS:
 	InsertAt=1
 
+Etk_Widget *
+etk_box_child_get_at(box, group, pos)
+	Etk_Box *	box
+	Etk_Box_Group	group
+	int	pos
+	ALIAS:
+	ChildGetAt=1
+	
 int
 etk_box_spacing_get(box)
 	Etk_Box *	box
@@ -651,6 +685,32 @@ etk_button_set_from_stock(button, stock_id)
 	Etk_Stock_Id	stock_id
       ALIAS:
 	SetFromStock=1
+
+void
+etk_button_style_set(button, style)
+	Etk_Button * 	button
+	Etk_Button_Style	style
+	ALIAS:
+	StyleSet=1
+
+Etk_Button_Style
+etk_button_style_get(button)
+	Etk_Button *	button
+	ALIAS:
+	StyleGet=1
+
+void
+etk_button_stock_size_set(button, size)
+	Etk_Button *	button
+	Etk_Stock_Size	size
+	ALIAS:
+	StockSizeSet=1
+
+Etk_Stock_Size
+etk_button_stock_size_get(button)
+	Etk_Button *	button
+	ALIAS:
+	StockSizeGet=1
 
 MODULE = Etk::Canvas		PACKAGE = Etk::Canvas	PREFIX = etk_canvas_
 
@@ -855,7 +915,7 @@ etk_combobox_item_append(combobox, ...)
 	      if(SvPOK(ST(i + 1)))
 		   ptr[i] = SvPV_nolen(ST(i + 1));
 	      else 
-		   ptr[i] = SvEtkWidgetPtr(ST(i + 1));
+		   ptr[i] = SvObj(ST(i + 1), getClass("Etk_Widget"));
 	   }
         switch(items)
         {	   
@@ -927,7 +987,7 @@ etk_combobox_item_prepend(combobox, ...)
 	      if(SvPOK(ST(i + 1)))
 		   ptr[i] = SvPV_nolen(ST(i + 1));
 	      else 
-		   ptr[i] = SvEtkWidgetPtr(ST(i + 1));
+		   ptr[i] = SvObj(ST(i + 1), getClass("Etk_Widget"));
 	   }
         switch(items)
         {	   
@@ -1003,7 +1063,7 @@ etk_combobox_item_prepend_relative(combobox, relative, ...)
 	      if(SvPOK(ST(i + 1)))
 		   ptr[i] = SvPV_nolen(ST(i + 1));
 	      else 
-		   ptr[i] = SvEtkWidgetPtr(ST(i + 1));
+		   ptr[i] = SvObj(ST(i + 1), getClass("Etk_Widget"));
 	   }
         switch(items)
         {	   
@@ -1092,7 +1152,7 @@ etk_combobox_item_append_relative(combobox, relative, ...)
 	      if(SvPOK(ST(i + 1)))
 		   ptr[i] = SvPV_nolen(ST(i + 1));
 	      else 
-		   ptr[i] = SvEtkWidgetPtr(ST(i + 1));
+		   ptr[i] = SvObj(ST(i + 1), getClass("Etk_Widget"));
 	   }
         switch(items)
         {	   
@@ -1457,17 +1517,17 @@ new(class)
 	RETVAL
 
 Etk_Bool
-etk_entry_password_get(entry)
+etk_entry_password_mode_get(entry)
 	Etk_Entry *	entry
       ALIAS:
-	PasswordGet=1
+	PasswordModeGet=1
 
 void
-etk_entry_password_set(entry, on)
+etk_entry_password_mode_set(entry, on)
 	Etk_Entry *	entry
 	Etk_Bool	on
       ALIAS:
-	PasswordSet=1
+	PasswordModeSet=1
 
 const char *
 etk_entry_text_get(entry)
@@ -2059,8 +2119,8 @@ etk_label_alignment_get(label)
 	float yalign;
 	etk_label_alignment_get(label, &xalign, &yalign);
 
-	XPUSHs(sv_2mortal(newSViv(xalign)));
-	XPUSHs(sv_2mortal(newSViv(yalign)));
+	XPUSHs(sv_2mortal(newSVnv(xalign)));
+	XPUSHs(sv_2mortal(newSVnv(yalign)));
 
 void
 etk_label_alignment_set(label, xalign, yalign)
@@ -2657,7 +2717,6 @@ etk_object_notification_callback_add(object, property_name, callback, data)
 	Notification_Callback_Data *ncb = NULL;
 
 	ncb = calloc(1, sizeof(Notification_Callback_Data));
-	ncb->property_name = strdup(property_name);
 	ncb->object = object;
 	ncb->perl_data = newSVsv(data);
 	ncb->perl_callback = newSVsv(callback);
@@ -2813,6 +2872,32 @@ etk_paned_position_set(paned, position)
 	int	position
       ALIAS:
 	PositionSet=1
+
+void
+etk_paned_child1_expand_set(paned, expand)
+	Etk_Paned *	paned
+	Etk_Bool	expand
+	ALIAS:
+	Child1ExpandSet=1
+
+void
+etk_paned_child2_expand_set(paned, expand)
+	Etk_Paned *	paned
+	Etk_Bool	expand
+	ALIAS:
+	Child2ExpandSet=1
+
+Etk_Bool
+etk_paned_child1_expand_get(paned)
+	Etk_Paned *	paned
+	ALIAS:
+	Child1ExpandGet=1
+
+Etk_Bool
+etk_paned_child2_expand_get(paned)
+	Etk_Paned *	paned
+	ALIAS:
+	Child2ExpandGet=1
 
 
 MODULE = Etk::PopupWindow	PACKAGE = Etk::PopupWindow	PREFIX = etk_popup_window_
@@ -3057,7 +3142,7 @@ Etk_Range *
 etk_scrolled_view_hscrollbar_get(scrolled_view)
 	Etk_Scrolled_View *	scrolled_view
       ALIAS:
-	HscrollbarGet=1
+	HScrollbarGet=1
 
 Etk_Scrolled_View *
 new(class)
@@ -3092,7 +3177,7 @@ Etk_Range *
 etk_scrolled_view_vscrollbar_get(scrolled_view)
 	Etk_Scrolled_View *	scrolled_view
       ALIAS:
-	VscrollbarGet=1
+	VScrollbarGet=1
 
 
 MODULE = Etk::Selection	PACKAGE = Etk::Selection	PREFIX = etk_selection_
@@ -3258,6 +3343,129 @@ etk_table_resize(table, num_cols, num_rows)
 	int	num_rows
       ALIAS:
 	Resize=1
+
+MODULE = Etk::Toolbar	PACKAGE = Etk::Toolbar	PREFIX = etk_toolbar_
+
+Etk_Toolbar *
+new(class)
+	SV * class
+	CODE:
+	RETVAL = ETK_TOOLBAR(etk_toolbar_new());
+	OUTPUT:
+	RETVAL
+
+void
+etk_toolbar_append(toolbar, widget)
+	Etk_Toolbar * toolbar
+	Etk_Widget * widget
+	ALIAS:
+	Append=1
+
+void
+etk_toolbar_prepend(toolbar, widget)
+	Etk_Toolbar * toolbar
+	Etk_Widget * widget
+	ALIAS:
+	Prepend=1
+
+void
+etk_toolbar_orientation_set(toolbar, orientation)
+	Etk_Toolbar * toolbar
+	Etk_Toolbar_Orientation orientation
+	ALIAS:
+	OrientationSet=1
+
+Etk_Toolbar_Orientation
+etk_toolbar_orientation_get(toolbar)
+	Etk_Toolbar * toolbar
+	ALIAS:
+	OrientationGet=1
+
+void
+etk_toolbar_style_set(toolbar, style)
+	Etk_Toolbar * toolbar
+	Etk_Toolbar_Style style
+	ALIAS:
+	StyleSet=1
+
+Etk_Toolbar_Style
+etk_toolbar_style_get(toolbar)
+	Etk_Toolbar * toolbar
+	ALIAS:
+	StyleGet=1
+
+void
+etk_toolbar_stock_size_set(toolbar, size)
+	Etk_Toolbar * toolbar
+	Etk_Stock_Size size
+	ALIAS:
+	StockSizeSet=1
+
+Etk_Stock_Size
+etk_toolbar_stock_size_get(toolbar)
+	Etk_Toolbar * toolbar
+	ALIAS:
+	StockSizeGet=1
+
+MODULE = Etk::ToolButton	PACKAGE = Etk::ToolButton	PREFIX = etk_tool_button_
+
+Etk_Tool_Button *
+new(class)
+	SV * class
+	CODE:
+	RETVAL = ETK_TOOL_BUTTON(etk_tool_button_new());
+	OUTPUT:
+	RETVAL
+
+Etk_Tool_Button *
+new_from_stock(stock_id)
+	Etk_Stock_Id	stock_id
+      ALIAS:
+	NewFromStock=1
+	CODE:
+	RETVAL = ETK_TOOL_BUTTON(etk_tool_button_new_from_stock(stock_id));
+	OUTPUT:
+	RETVAL
+
+Etk_Tool_Button *
+new_with_label(label)
+	char *	label
+      ALIAS:
+	NewWithLabel=1
+	CODE:
+	RETVAL = ETK_TOOL_BUTTON(etk_tool_button_new_with_label(label));
+	OUTPUT:
+	RETVAL
+
+MODULE = Etk::ToolToggleButton	PACKAGE = Etk::ToolToggleButton	PREFIX = etk_tool_toggle_button_
+
+Etk_Tool_Toggle_Button *
+new(class)
+	SV * class
+	CODE:
+	RETVAL = ETK_TOOL_TOGGLE_BUTTON(etk_tool_toggle_button_new());
+	OUTPUT:
+	RETVAL
+
+Etk_Tool_Toggle_Button *
+new_from_stock(stock_id)
+	Etk_Stock_Id	stock_id
+      ALIAS:
+	NewFromStock=1
+	CODE:
+	RETVAL = ETK_TOOL_TOGGLE_BUTTON(etk_tool_toggle_button_new_from_stock(stock_id));
+	OUTPUT:
+	RETVAL
+
+Etk_Tool_Toggle_Button *
+new_with_label(label)
+	char *	label
+      ALIAS:
+	NewWithLabel=1
+	CODE:
+	RETVAL = ETK_TOOL_TOGGLE_BUTTON(etk_tool_toggle_button_new_with_label(label));
+	OUTPUT:
+	RETVAL
 
 
 MODULE = Etk::TextView	PACKAGE = Etk::TextView	PREFIX = etk_text_view_
@@ -3606,14 +3814,14 @@ etk_tooltips_tip_get(widget)
 void
 etk_tooltips_tip_set(widget, text)
 	Etk_Widget *	widget
-	char *	text
+	const char *	text
       ALIAS:
 	TipSet=1
 
 Etk_Bool
-etk_tooltips_tip_visible()
+etk_tooltips_enabled_get()
       ALIAS:
-	TipVisible=1
+	EnabledGet=1
 
 
 MODULE = Etk::ToplevelWidget	PACKAGE = Etk::ToplevelWidget	PREFIX = etk_toplevel_widget_
@@ -3900,7 +4108,7 @@ etk_tree_col_new(tree, title, model, width)
 	modeldata = (Etk_Tree_Model *) SvObj(model, "Etk::Tree::Model");
 
 	col = etk_tree_col_new(tree, title, modeldata, width);
-	RETVAL = newSVEtkTreeColPtr(col);
+	RETVAL = newSVObj(col, getClass("Etk_Tree_Col"));
 
 	model_type = hv_fetch( (HV*)SvRV(model), "_model", 6, 0);
 	if (model_type) {
@@ -4089,7 +4297,7 @@ new(class, tree)
 	Etk_Tree_Model * model;
 	SV * ret;
 	model = etk_tree_model_checkbox_new(tree);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mCHECKBOX), 0);
 	XPUSHs(sv_2mortal(ret));
 
@@ -4104,7 +4312,7 @@ new(class, tree)
 	Etk_Tree_Model * model;
 	SV * ret;
 	model = etk_tree_model_double_new(tree);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mDOUBLE), 0);
 	XPUSHs(sv_2mortal(ret));
 
@@ -4139,7 +4347,7 @@ new(class, tree, type)
 		mod = newSViv(mICONTEXTE);
 
 	model = etk_tree_model_icon_text_new(tree, type);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, mod, 0);
 	XPUSHs(sv_2mortal(ret));
 
@@ -4160,7 +4368,7 @@ new(class, tree, type)
 	else
 		mod = newSViv(mIMAGEE);
 	model = etk_tree_model_image_new(tree, type);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, mod, 0);
 	XPUSHs(sv_2mortal(ret));
 
@@ -4174,7 +4382,7 @@ new(class, tree)
 	Etk_Tree_Model * model;
 	SV * ret;
 	model = etk_tree_model_int_new(tree);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mINT), 0);
 	XPUSHs(sv_2mortal(ret));
 
@@ -4190,7 +4398,7 @@ new(class, tree)
 	Etk_Tree_Model * model;
 	SV * ret;
 	model = etk_tree_model_progress_bar_new(tree);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mPROGRESSBAR), 0);
 	XPUSHs(sv_2mortal(ret));
 
@@ -4205,7 +4413,7 @@ new(class, tree)
 	Etk_Tree_Model * model;
 	SV * ret;
 	model = etk_tree_model_text_new(tree);
-	ret = newSVEtkTreeModelPtr(model);
+	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mTEXT), 0);
 	XPUSHs(sv_2mortal(ret));
 
