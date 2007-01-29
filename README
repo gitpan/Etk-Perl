@@ -1,4 +1,4 @@
-Etk version 0.05
+Etk version 0.06
 ================
 
 These are the Etk bindings for the Enlightenment Toolkit (etk)
@@ -34,7 +34,7 @@ http://www.enlightenment.org/Enlightenment/Get_Enlightenment/
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2006 by Hisham Mardam Bey
+Copyright (C) 2007 by Chady Kassouf
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.7 or,

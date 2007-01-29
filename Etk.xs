@@ -17,13 +17,11 @@
 
 #define mINT 1 
 #define mDOUBLE 2
-#define mICONTEXTF 3 
-#define mIMAGEF 4
-#define mCHECKBOX 5
-#define mPROGRESSBAR 6
-#define mTEXT 7
-#define mICONTEXTE 8 
-#define mIMAGEE 9
+#define mIMAGE 3
+#define mCHECKBOX 4
+#define mPROGRESSBAR 5
+#define mTEXT 6
+
 
 static void
 notification_callback(Etk_Object * object, const char * property_name, void * data)
@@ -100,7 +98,7 @@ callback_VOID__POINTER(Etk_Object *object, void *value, void *data)
    SV *event_rv;
    cbd = data;   
 
-   event_rv = GetSignalEvent(object, value, cbd);
+   event_rv = GetSignalEvent_POINTER(object, value, cbd);
    
    PUSHMARK(SP) ;
    XPUSHs(sv_2mortal(newSVsv(cbd->perl_object)));
@@ -116,11 +114,17 @@ callback_VOID__POINTER_POINTER(Etk_Object *object, void *val1, void *val2, void 
 {
    dSP;
    Callback_Signal_Data *cbd = NULL;
+   cbd = data;   
+
+   SV * obj1_rv, *event_rv;
+   GetSignalEvent_POINTER_POINTER(object, val1, val2, cbd, &obj1_rv, &event_rv);
 
    cbd = data;
 
    PUSHMARK(SP) ;
    XPUSHs(sv_2mortal(newSVsv(cbd->perl_object)));
+   XPUSHs(sv_2mortal(obj1_rv));
+   XPUSHs(sv_2mortal(event_rv));
    XPUSHs(sv_2mortal(newSVsv(cbd->perl_data)));   
    PUTBACK ;
       
@@ -218,7 +222,7 @@ __etk_signal_connect_full(char *signal_name, SV *object, SV *callback, SV *data,
 	sig = etk_signal_lookup(signal_name, obj->type);
 	if(!sig) printf("CANT GET SIG!\n");
 	marsh = etk_signal_marshaller_get(sig);
-	
+
 	if(marsh == etk_marshaller_VOID__VOID)
 	  etk_signal_connect_full(sig, obj, ETK_CALLBACK(callback_VOID__VOID), cbd, swapped, after);
 	else if(marsh == etk_marshaller_VOID__INT)
@@ -235,6 +239,8 @@ __etk_signal_connect_full(char *signal_name, SV *object, SV *callback, SV *data,
 	  etk_signal_connect_full(sig, obj, ETK_CALLBACK(callback_BOOL__DOUBLE), cbd, swapped, after);
 	else if(marsh == etk_marshaller_BOOL__POINTER_POINTER)
 	  etk_signal_connect_full(sig, obj, ETK_CALLBACK(callback_BOOL__POINTER_POINTER), cbd, swapped, after);
+	else if(marsh == etk_marshaller_VOID__POINTER_POINTER)
+	  etk_signal_connect_full(sig, obj, ETK_CALLBACK(callback_VOID__POINTER_POINTER), cbd, swapped, after);
 	else
 	etk_signal_connect_full(sig, obj, ETK_CALLBACK(callback_VOID__VOID), cbd, swapped, after);
 
@@ -741,6 +747,32 @@ etk_canvas_object_remove(canvas, object)
 	CODE:
 	etk_canvas_object_remove(ETK_CANVAS(canvas), object);
 
+void
+etk_canvas_object_move(canvas, object, x, y)
+	Etk_Widget *    canvas
+	Evas_Object *   object
+	int	x
+	int	y
+	ALIAS:
+	ObjectMove=1
+	CODE:
+	etk_canvas_object_move(ETK_CANVAS(canvas), object, x, y);
+
+void
+etk_canvas_object_geometry_get(canvas, object)
+	Etk_Widget *    canvas
+	Evas_Object *   object
+	ALIAS:
+	GeometryGet=1
+	PPCODE:
+	int x, y, w, h;
+	etk_canvas_object_geometry_get(ETK_CANVAS(canvas), object, &x, &y, &w, &h);
+	EXTEND(SP, 4);
+	PUSHs(sv_2mortal(newSViv(x)));
+	PUSHs(sv_2mortal(newSViv(y)));
+	PUSHs(sv_2mortal(newSViv(w)));
+	PUSHs(sv_2mortal(newSViv(h)));
+
 
 MODULE = Etk::CheckButton		PACKAGE = Etk::CheckButton	PREFIX = etk_check_button_
 	
@@ -787,6 +819,18 @@ etk_colorpicker_current_color_get(cp)
       ALIAS:
 	CurrentColorGet=1
 	
+void
+etk_colorpicker_use_alpha_set(cp, use_alpha)
+	Etk_Colorpicker *	cp
+	Etk_Bool	use_alpha
+	ALIAS:
+	UseAlphaSet=1
+
+Etk_Bool
+etk_colorpicker_use_alpha_get(cp)
+	Etk_Colorpicker *       cp
+	ALIAS:
+	UseAlphaGet=1
 
 void
 etk_colorpicker_current_color_set(cp, color)
@@ -889,6 +933,12 @@ etk_combobox_item_height_set(combobox, item_height)
       ALIAS:
 	ItemHeightSet=1
 
+int
+etk_combobox_active_item_nth_get(combobox)
+	Etk_Combobox *  combobox
+	ALIAS:
+	ActiveItemNthGet=1
+	
 int
 etk_combobox_item_height_get(combobox)
 	Etk_Combobox *	combobox
@@ -1249,14 +1299,6 @@ etk_combobox_item_data_set(item, data)
         etk_combobox_item_data_set(ETK_COMBOBOX_ITEM(item), newSVsv(data));
 
 void
-etk_combobox_item_data_set_full(item, data, free_cb)
-	Etk_Combobox_Item *	item
-	void *	data
-	void ( * ) ( void * data ) free_cb
-      ALIAS:
-	DataSetFull=1
-
-void
 etk_combobox_item_remove(combobox, item)
 	Etk_Combobox *	combobox
 	Etk_Combobox_Item *	item
@@ -1294,6 +1336,12 @@ etk_combobox_item_remove(combobox, item)
 #	RETVAL
 
 MODULE = Etk::Container	PACKAGE = Etk::Container	PREFIX = etk_container_
+
+void
+etk_container_remove_all(container)
+	Etk_Container * container
+	ALIAS:
+	RemoveAll=1
 
 void
 etk_container_add(container, widget)
@@ -1429,19 +1477,6 @@ etk_dialog_pack_widget_in_action_area(dialog, widget, expand, fill, padding, pac
 	PackWidgetInActionArea=1
 
 
-MODULE = Etk::Dnd	PACKAGE = Etk::Dnd	PREFIX = etk_dnd_
-	
-Etk_Bool
-etk_dnd_init()
-      ALIAS:
-	Init=1
-
-void
-etk_dnd_shutdown()
-      ALIAS:
-	Shutdown=1
-
-
 MODULE = Etk::Drag	PACKAGE = Etk::Drag	PREFIX = etk_drag_
 	
 void
@@ -1542,6 +1577,41 @@ etk_entry_text_set(entry, text)
       ALIAS:
 	TextSet=1
 
+void
+etk_entry_clear(entry)
+	Etk_Entry *	entry
+	ALIAS:
+	Clear=1
+
+void
+etk_entry_image_set(entry, position, image)
+	Etk_Entry *	entry
+	Etk_Entry_Image_Position position
+	Etk_Image *	image
+	ALIAS:
+	ImageSet=1
+
+Etk_Image *
+etk_entry_image_get(entry, position)
+	Etk_Entry *	entry
+	Etk_Entry_Image_Position position
+	ALIAS:
+	ImageGet=1
+
+void
+etk_entry_image_highlight_set(entry, position, highlight)
+	Etk_Entry *	entry
+	Etk_Entry_Image_Position position
+	Etk_Bool	highlight
+	ALIAS:
+	ImageHighlightSet=1
+
+void
+etk_entry_clear_button_add(entry)
+	Etk_Entry *     entry
+	ALIAS:
+	ClearButtonAdd=1
+	
 
 MODULE = Etk::Filechooser	PACKAGE = Etk::Filechooser	PREFIX = etk_filechooser_widget_
 	
@@ -1559,7 +1629,7 @@ etk_filechooser_widget_current_folder_set(filechooser_widget, folder)
 	CurrentFolderSet=1
 
 Etk_Filechooser_Widget *
-etk_filechooser_widget_new(class)
+new(class)
 	SV * class
       ALIAS:
 	New=1
@@ -1635,6 +1705,50 @@ new(class, label)
 	RETVAL = ETK_FRAME(etk_frame_new(label));
 	OUTPUT:
 	RETVAL
+
+MODULE = Etk::Fixed	PACKAGE	= Etk::Fixed	PREFIX = etk_fixed_
+
+Etk_Fixed *
+new(class)
+	SV * class
+	CODE:
+	RETVAL = ETK_FIXED(etk_fixed_new());
+	OUTPUT:
+	RETVAL
+
+void
+etk_fixed_put(fixed, widget, x, y)
+	Etk_Fixed * fixed
+	Etk_Widget * widget
+	int x
+	int y
+	ALIAS:
+	Put=1
+
+void
+etk_fixed_move(fixed, widget, x, y)
+	Etk_Fixed * fixed
+	Etk_Widget * widget
+	int x
+	int y
+	ALIAS:
+	Move=1
+
+void
+etk_fixed_child_position_get(fixed, widget)
+	Etk_Fixed * fixed
+	Etk_Widget * widget
+	ALIAS:
+	ChildPositionGet=1
+	PPCODE:
+	
+	int x, y;
+	etk_fixed_child_position_get(fixed, widget, &x, &y);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(x)));
+	PUSHs(sv_2mortal(newSViv(y)));
+
+
 
 MODULE = Etk::HBox	PACKAGE = Etk::HBox	PREFIX = etk_hbox_
 	
@@ -1774,6 +1888,13 @@ etk_iconbox_icon_get_at_xy(iconbox, x, y, over_cell, over_icon, over_label)
       ALIAS:
 	IconGetAtXy=1
 
+Etk_Scrolled_View *
+etk_iconbox_scrolled_view_get(iconbox)
+	Etk_Iconbox * iconbox
+	ALIAS:
+	ScrolledViewGet=1
+
+	
 MODULE = Etk::Iconbox::Icon	PACKAGE = Etk::Iconbox::Icon	PREFIX = etk_iconbox_icon_
 
 SV *
@@ -1997,11 +2118,17 @@ etk_image_edje_get(image, edje_filename, edje_group)
 	PUSHs(sv_2mortal(newSVpv(edje_filename, strlen(edje_filename))));
 	PUSHs(sv_2mortal(newSVpv(edje_group, strlen(edje_group))));
 
-const char *
+void
 etk_image_file_get(image)
 	Etk_Image *	image
       ALIAS:
 	FileGet=1
+	PPCODE:
+	char * filename;
+	char * key;
+	etk_image_file_get(image, &filename, &key);
+	XPUSHs(sv_2mortal(newSVpv(filename, strlen(filename))));
+	if (key) XPUSHs(sv_2mortal(newSVpv(key, strlen(key))));
 
 Etk_Bool
 etk_image_keep_aspect_get(image)
@@ -2015,6 +2142,19 @@ etk_image_keep_aspect_set(image, keep_aspect)
 	Etk_Bool	keep_aspect
       ALIAS:
 	KeepAspectSet=1
+
+void
+etk_image_aspect_ratio_set(image, aspect_ratio)
+	Etk_Image *     image
+	double		aspect_ratio
+	ALIAS:
+	AspectRatioSet=1
+
+double
+etk_image_aspect_ratio_get(image)
+	Etk_Image *     image
+	ALIAS:
+	AspectRatioGet=1
 
 Etk_Image *
 new(class)
@@ -2036,12 +2176,13 @@ etk_image_new_from_edje(edje_filename, edje_group)
 	RETVAL
 
 Etk_Image *
-etk_image_new_from_file(filename)
-	char *	filename
+etk_image_new_from_file(filename, key)
+	const char *	filename
+	const char * key
       ALIAS:
 	NewFromFile=1
 	CODE:
-	RETVAL = ETK_IMAGE(etk_image_new_from_file(filename));
+	RETVAL = ETK_IMAGE(etk_image_new_from_file(filename, key));
 	OUTPUT:
 	RETVAL
 
@@ -2065,9 +2206,10 @@ etk_image_set_from_edje(image, edje_filename, edje_group)
 	SetFromEdje=1
 
 void
-etk_image_set_from_file(image, filename)
+etk_image_set_from_file(image, filename, key)
 	Etk_Image *	image
-	char *	filename
+	const char *	filename
+	const char *	key
       ALIAS:
 	SetFromFile=1
 
@@ -2105,6 +2247,29 @@ etk_image_stock_get(image)
 	EXTEND(SP, 2);
 	PUSHs(sv_2mortal(newSViv(stock_id)));
 	PUSHs(sv_2mortal(newSViv(stock_size)));
+
+Etk_Image_Source
+etk_image_source_get(image)
+	Etk_Image *     image
+      ALIAS:
+      	SourceGet=1
+
+void
+etk_image_update(image)
+	Etk_Image *     image
+	ALIAS:
+	Update=1
+
+void
+etk_image_update_rect(image, x, y, w, h)
+	Etk_Image *     image
+	int x
+	int y
+	int w
+	int h
+	ALIAS:
+	UpdateRect=1
+
 
 
 MODULE = Etk::Label	PACKAGE = Etk::Label	PREFIX = etk_label_
@@ -2168,31 +2333,9 @@ etk_main_iterate()
 	Iterate=1
 
 void
-etk_main_iteration_queue()
-      ALIAS:
-	IterationQueue=1
-
-void
 etk_main_quit()
       ALIAS:
 	Quit=1
-
-void
-etk_main_toplevel_widget_add(widget)
-	Etk_Toplevel_Widget *	widget
-      ALIAS:
-	ToplevelWidgetAdd=1
-
-void
-etk_main_toplevel_widget_remove(widget)
-	Etk_Toplevel_Widget *	widget
-      ALIAS:
-	ToplevelWidgetRemove=1
-
-Evas_List *
-etk_main_toplevel_widgets_get()
-      ALIAS:
-	ToplevelWidgetsGet=1
 
 
 MODULE = Etk::Menu::Bar	PACKAGE = Etk::Menu::Bar	PREFIX = etk_menu_bar_
@@ -2280,6 +2423,11 @@ etk_menu_item_submenu_set(menu_item, submenu)
       ALIAS:
 	SubmenuSet=1
 
+Etk_Menu *
+etk_menu_item_submenu_get(menu_item)
+	Etk_Menu_Item * menu_item
+	ALIAS:
+	SubmenuGet=1
 
 
 MODULE = Etk::Menu::Item::Check	PACKAGE = Etk::Menu::Item::Check	PREFIX = etk_menu_item_check_
@@ -2360,7 +2508,7 @@ Etk_Menu_Item_Radio *
 new(class)
 	SV * class
 	CODE:
-	RETVAL = ETK_MENU_ITEM_RADIO(etk_menu_item_new());
+	RETVAL = ETK_MENU_ITEM_RADIO(etk_menu_item_radio_new(NULL));
 	OUTPUT:
 	RETVAL
 	
@@ -2436,6 +2584,28 @@ etk_menu_popup_at_xy(menu, x, y)
 	int	y
       ALIAS:
 	PopupAtXy=1
+
+void
+etk_menu_popup_in_direction(menu, direction)
+	Etk_Menu *menu
+	Etk_Popup_Direction direction
+	ALIAS:
+	PopupInDirection=1
+	
+void
+etk_menu_popup_at_xy_in_direction(menu, x, y, direction)
+	Etk_Menu *menu
+	int	x
+	int	y
+	Etk_Popup_Direction direction
+	ALIAS:
+	PopupAtXYInDirection=1
+
+Etk_Menu_Item *
+etk_menu_parent_item_get(menu)
+	Etk_Menu *menu
+	ALIAS:
+	ParentItemGet=1
 
 
 MODULE = Etk::Menu::Shell	PACKAGE = Etk::Menu::Shell	PREFIX = etk_menu_shell_
@@ -2829,6 +2999,40 @@ signal_disconnect(object, signal_name, callback)
 	else
  	  etk_signal_disconnect(signal_name, obj, ETK_CALLBACK(callback_VOID__VOID));
 
+const char *
+etk_object_name_get(object)
+	Etk_Object *	object
+      ALIAS:
+	NameGet=1
+
+Etk_Object *
+etk_object_name_find(name)
+	const char * name
+	ALIAS:
+	NameFind=1
+
+void
+etk_object_name_set(object, name)
+	Etk_Object *	object
+	char *	name
+      ALIAS:
+	NameSet=1
+
+void
+etk_object_destroy(object)
+	Etk_Object *    object
+	ALIAS:
+	Destroy=1
+
+void
+etk_object_shutdown()
+	ALIAS:
+	Shutdown=1
+
+void
+etk_object_purge()
+	ALIAS:
+	Purge=1
 
 MODULE = Etk::Paned	PACKAGE = Etk::Paned	PREFIX = etk_paned_
 	
@@ -2944,6 +3148,36 @@ etk_popup_window_popup_at_xy(popup_window, x, y)
       ALIAS:
 	PopupAtXy=1
 
+void
+etk_popup_window_parent_set(popup_window, parent)
+	Etk_Popup_Window *      popup_window
+	Etk_Popup_Window *      parent
+	ALIAS:
+	ParentSet=1
+
+Etk_Popup_Window *
+etk_popup_window_parent_get(popup_window)
+	Etk_Popup_Window *      popup_window
+	ALIAS:
+	ParentGet=1
+
+void
+etk_popup_window_popup_in_direction(popup_window, direction)
+	Etk_Popup_Window *      popup_window
+	Etk_Popup_Direction	direction
+	ALIAS:
+	PopupInDirection=1
+
+void
+etk_popup_window_popup_at_xy_in_direction(popup_window, x, y, direction)
+	Etk_Popup_Window *      popup_window
+	int	x
+	int	y
+	Etk_Popup_Direction     direction
+	ALIAS:
+	PopupAtXYInDirection=1
+
+	
 MODULE = Etk::ProgressBar	PACKAGE = Etk::ProgressBar	PREFIX = etk_progress_bar_
 	
 double
@@ -3122,7 +3356,7 @@ etk_range_value_get(range)
       ALIAS:
 	ValueGet=1
 
-void
+Etk_Bool
 etk_range_value_set(range, value)
 	Etk_Range *	range
 	double	value
@@ -3183,19 +3417,24 @@ etk_scrolled_view_vscrollbar_get(scrolled_view)
 MODULE = Etk::Selection	PACKAGE = Etk::Selection	PREFIX = etk_selection_
 
 void
-etk_selection_text_request(widget)
+etk_selection_text_request(selection, widget)
+	Etk_Selection_Type selection
 	Etk_Widget *	widget
       ALIAS:
 	TextRequest=1
 
 void
-etk_selection_text_set(widget, data, length)
-	Etk_Widget *	widget
-	char *	data
-	int	length
+etk_selection_text_set(selection, text)
+	Etk_Selection_Type selection
+	char *	text
       ALIAS:
 	TextSet=1
 
+void
+etk_selection_clear(selection)
+	Etk_Selection_Type selection
+	ALIAS:
+	Clear=1
 	
 MODULE = Etk::Signal	PACKAGE = Etk::Signal	PREFIX = etk_signal_
 	
@@ -3241,26 +3480,42 @@ new(class)
 	RETVAL
 
 void
-etk_statusbar_pop(statusbar, context_id)
+etk_statusbar_message_pop(statusbar, context_id)
 	Etk_Statusbar *	statusbar
 	int	context_id
       ALIAS:
-	Pop=1
+	MessagePop=1
 
 int
-etk_statusbar_push(statusbar, message, context_id)
+etk_statusbar_message_push(statusbar, message, context_id)
 	Etk_Statusbar *	statusbar
 	char *	message
 	int	context_id
       ALIAS:
-	Push=1
+	MessagePush=1
 
 void
-etk_statusbar_remove(statusbar, message_id)
+etk_statusbar_message_remove(statusbar, message_id)
 	Etk_Statusbar *	statusbar
 	int	message_id
       ALIAS:
-	Remove=1
+	MessageRemove=1
+
+void
+etk_statusbar_message_get(statusbar)
+	Etk_Statusbar *	statusbar
+      ALIAS:
+	MessageGet=1
+	PPCODE:
+	const char ** message;
+	int mid;
+	int cid;
+	etk_statusbar_message_get(statusbar, message, &mid, &cid);
+	EXTEND(SP, 3);
+	PUSHs(sv_2mortal(newSVpv(*message, strlen(*message))));
+	PUSHs(sv_2mortal(newSViv(mid)));
+	PUSHs(sv_2mortal(newSViv(cid)));
+	
 
 MODULE = Etk::Stock	PACKAGE = Etk::Stock	PREFIX = etk_stock_
 	
@@ -3595,12 +3850,6 @@ etk_textblock_text_get(tb, markup)
 	OUTPUT:
 	RETVAL
 
-void
-etk_textblock_unrealize(textblock)
-	Etk_Textblock *	textblock
-      ALIAS:
-	Unrealize=1
-
 const char *
 etk_textblock_range_text_get(tb, iter1, iter2, markup)
 	Etk_Textblock *tb
@@ -3668,52 +3917,39 @@ etk_textblock_delete_range(tb, iter1, iter2)
       ALIAS:
 	DeleteRange=1
 
+void
+etk_textblock_unicode_length_get(unicode_string)
+	const char *unicode_string
+	ALIAS:
+	UnicodeLengthGet=1
+
+Etk_Bool etk_textblock_is_white_char(c)
+	int c
+	ALIAS:
+	IsWhiteChar=1
+
+void
+etk_textblock_char_size_get(evas, font_face, font_size)
+	Evas * evas
+	const char * font_face
+	int font_size
+	ALIAS:
+	CharSizeGet=1
+	PPCODE:
+	int w, h;
+	etk_textblock_char_size_get(evas, font_face, font_size, &w, &h);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(w)));
+	PUSHs(sv_2mortal(newSViv(h)));
+
 
 
 MODULE = Etk::Theme	PACKAGE = Etk::Theme	PREFIX = etk_theme_
 	
-const char *
-etk_theme_default_icon_theme_get()
-      ALIAS:
-	DefaultIconThemeGet=1
-
-const char *
-etk_theme_default_widget_theme_get()
-      ALIAS:
-	DefaultWidgetThemeGet=1
-
-const char *
-etk_theme_icon_theme_get()
-      ALIAS:
-	IconThemeGet=1
-
-Etk_Bool
-etk_theme_icon_theme_set(theme_name)
-	char *	theme_name
-      ALIAS:
-	IconThemeSet=1
-
 void
 etk_theme_init()
-      ALIAS:
+	ALIAS:
 	Init=1
-
-Evas_Object *
-etk_theme_object_load(evas, filename, group)
-	Evas *	evas
-	char *	filename
-	char *	group
-      ALIAS:
-	ObjectLoad=1
-
-Evas_Object *
-etk_theme_object_load_from_parent(evas, theme_parent, filename, group)
-	Evas *	evas
-	Etk_Widget *	theme_parent
-	char *	filename
-	char *	group
-      ALIAS:
-	ObjectLoadFromParent=1
 
 void
 etk_theme_shutdown()
@@ -3721,15 +3957,54 @@ etk_theme_shutdown()
 	Shutdown=1
 
 const char *
-etk_theme_widget_theme_get()
+etk_theme_widget_get()
       ALIAS:
-	WidgetThemeGet=1
+	WidgetGet=1
 
 Etk_Bool
-etk_theme_widget_theme_set(theme_name)
+etk_theme_widget_set(theme_name)
 	char *	theme_name
       ALIAS:
-	WidgetThemeSet=1
+	WidgetSet=1
+
+void
+etk_theme_widget_available_themes_get()
+	ALIAS:
+	WidgetAvailableThemesGet=1
+	PPCODE:
+	Evas_List * list;
+
+	list = etk_theme_widget_available_themes_get();
+	XPUSHs(sv_2mortal(newSVCharEvasList(list)));
+
+const char *
+etk_theme_icon_get()
+	ALIAS:
+	IconGet=1
+
+Etk_Bool
+etk_theme_icon_set(theme)
+	const char * theme
+	ALIAS:
+	IconSet=1
+
+void
+etk_theme_icon_available_themes_get()
+	ALIAS:
+	IconAvailableThemesGet=1
+	PPCODE:
+	Evas_List * list;
+
+	list = etk_theme_icon_available_themes_get();
+	XPUSHs(sv_2mortal(newSVCharEvasList(list)));
+	
+Etk_Bool
+etk_theme_group_exists(file, group, parent)
+	const char * file
+	const char * group
+	const char * parent
+	ALIAS:
+	GroupExists=1
 
 
 MODULE = Etk::ToggleButton	PACKAGE = Etk::ToggleButton	PREFIX = etk_toggle_button_
@@ -3819,95 +4094,133 @@ etk_tooltips_tip_set(widget, text)
 	TipSet=1
 
 Etk_Bool
-etk_tooltips_enabled_get()
+etk_tooltips_tip_visible()
       ALIAS:
-	EnabledGet=1
+	TipVisible=1
 
 
-MODULE = Etk::ToplevelWidget	PACKAGE = Etk::ToplevelWidget	PREFIX = etk_toplevel_widget_
+MODULE = Etk::Toplevel	PACKAGE = Etk::Toplevel	PREFIX = etk_toplevel_
 
 Evas *
-etk_toplevel_widget_evas_get(toplevel_widget)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_evas_get(toplevel_widget)
+	Etk_Toplevel *	toplevel_widget
       ALIAS:
 	EvasGet=1
 
 Etk_Widget *
-etk_toplevel_widget_focused_widget_get(toplevel_widget)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_focused_widget_get(toplevel_widget)
+	Etk_Toplevel *	toplevel_widget
       ALIAS:
 	FocusedWidgetGet=1
 
 Etk_Widget *
-etk_toplevel_widget_focused_widget_next_get(toplevel_widget)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_focused_widget_next_get(toplevel_widget)
+	Etk_Toplevel *	toplevel_widget
       ALIAS:
 	FocusedWidgetNextGet=1
 
 Etk_Widget *
-etk_toplevel_widget_focused_widget_prev_get(toplevel_widget)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_focused_widget_prev_get(toplevel_widget)
+	Etk_Toplevel *	toplevel_widget
       ALIAS:
 	FocusedWidgetPrevGet=1
 
 void
-etk_toplevel_widget_focused_widget_set(toplevel_widget, widget)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_focused_widget_set(toplevel_widget, widget)
+	Etk_Toplevel *	toplevel_widget
 	Etk_Widget *	widget
       ALIAS:
 	FocusedWidgetSet=1
 
 void
-etk_toplevel_widget_geometry_get(toplevel_widget, x, y, w, h)
-	Etk_Toplevel_Widget *	toplevel_widget
-      ALIAS:
-	GeometryGet=1
-	PPCODE:
-	int 	x;
-	int 	y;
-	int 	w;
-	int 	h;
-	etk_toplevel_widget_geometry_get(toplevel_widget, &x, &y, &w, &h);
-	EXTEND(SP, 4);
-	PUSHs(sv_2mortal(newSViv(x)));
-	PUSHs(sv_2mortal(newSViv(y)));
-	PUSHs(sv_2mortal(newSViv(w)));
-	PUSHs(sv_2mortal(newSViv(h)));
-
-void
-etk_toplevel_widget_pointer_pop(toplevel_widget, pointer_type)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_pointer_pop(toplevel_widget, pointer_type)
+	Etk_Toplevel *	toplevel_widget
 	Etk_Pointer_Type	pointer_type
       ALIAS:
 	PointerPop=1
 
 void
-etk_toplevel_widget_pointer_push(toplevel_widget, pointer_type)
-	Etk_Toplevel_Widget *	toplevel_widget
+etk_toplevel_pointer_push(toplevel_widget, pointer_type)
+	Etk_Toplevel *	toplevel_widget
 	Etk_Pointer_Type	pointer_type
       ALIAS:
 	PointerPush=1
+
+void
+etk_toplevel_evas_position_get(toplevel)
+	Etk_Toplevel *  toplevel
+	ALIAS:
+	EvasPositionGet=1
+	PPCODE:
+	int x, y;
+	etk_toplevel_evas_position_get(toplevel, &x, &y);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(x)));
+	PUSHs(sv_2mortal(newSViv(y)));
+
+void
+etk_toplevel_screen_position_get(toplevel)
+	Etk_Toplevel *  toplevel
+	ALIAS:
+	ScreenPositionGet=1
+	PPCODE:
+	int x, y;
+	etk_toplevel_screen_position_get(toplevel, &x, &y);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(x)));
+	PUSHs(sv_2mortal(newSViv(y)));
+
+void
+etk_toplevel_size_get(toplevel)
+	Etk_Toplevel *  toplevel
+	ALIAS:
+	SizeGet=1
+	PPCODE:
+	int w, h;
+	etk_toplevel_size_get(toplevel, &w, &h);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(w)));
+	PUSHs(sv_2mortal(newSViv(h)));
+
+Evas_List *
+etk_toplevel_widgets_get()
+	ALIAS:
+	WidgetsGet=1
 
 
 MODULE = Etk::Tree	PACKAGE = Etk::Tree	PREFIX = etk_tree_
 	
 Etk_Tree_Row *
-etk_tree_append(tree)
+etk_tree_row_append(tree, parent=NULL)
 	Etk_Tree *	tree
+	Etk_Tree_Row *	parent
       ALIAS:
-	Append=1
+	RowAppend=1
       CODE:
-        RETVAL = etk_tree_append(tree, NULL);
+        RETVAL = etk_tree_row_append(tree, parent, NULL);
       OUTPUT:
         RETVAL
 
 Etk_Tree_Row *
-etk_tree_append_to_row(row)
-	Etk_Tree_Row *	row
+etk_tree_row_prepend(tree, parent=NULL)
+	Etk_Tree *	tree
+	Etk_Tree_Row *	parent
       ALIAS:
-	AppendToRow=1
+	RowPrepend=1
+      CODE:
+        RETVAL = etk_tree_row_prepend(tree, parent, NULL);
+      OUTPUT:
+        RETVAL
+
+Etk_Tree_Row *
+etk_tree_row_insert(tree, parent=NULL, after)
+	Etk_Tree *	tree
+	Etk_Tree_Row *	parent
+	Etk_Tree_Row *	after
+	ALIAS:
+	RowInsert=1
 	CODE:
-	RETVAL = etk_tree_append_to_row(row, NULL);
+	RETVAL = etk_tree_row_insert(tree, parent, after, NULL);
 	OUTPUT:
 	RETVAL
 
@@ -3955,10 +4268,8 @@ etk_tree_headers_visible_set(tree, headers_visible)
 	HeadersVisibleSet=1
 
 Etk_Tree_Row *
-etk_tree_last_row_get(tree, walking_through_hierarchy, include_collapsed_children)
+etk_tree_last_row_get(tree)
 	Etk_Tree *	tree
-	Etk_Bool	walking_through_hierarchy
-	Etk_Bool	include_collapsed_children
       ALIAS:
 	LastRowGet=1
 
@@ -3996,14 +4307,6 @@ new(class)
 	OUTPUT:
 	RETVAL
 
-Etk_Tree_Row *
-etk_tree_next_row_get(row, walking_through_hierarchy, include_collapsed_children)
-	Etk_Tree_Row *	row
-	Etk_Bool	walking_through_hierarchy
-	Etk_Bool	include_collapsed_children
-      ALIAS:
-	NextRowGet=1
-
 Etk_Tree_Col *
 etk_tree_nth_col_get(tree, nth)
 	Etk_Tree *	tree
@@ -4014,15 +4317,6 @@ etk_tree_num_cols_get(tree)
 	Etk_Tree *	tree
       ALIAS:
 	NumColsGet=1
-
-Etk_Tree_Row *
-etk_tree_prev_row_get(row, walking_through_hierarchy, include_collapsed_children)
-	Etk_Tree_Row *	row
-	Etk_Bool	walking_through_hierarchy
-	Etk_Bool	include_collapsed_children
-      ALIAS:
-	PrevRowGet=1
-
 	
 void
 etk_tree_select_all(tree)
@@ -4036,51 +4330,46 @@ etk_tree_selected_row_get(tree)
       ALIAS:
 	SelectedRowGet=1
 
-Evas_List * 
-etk_tree_selected_rows_get(tree)
-	Etk_Tree *	tree
-      ALIAS:
-	SelectedRowsGet=1
-
-void
-etk_tree_sort(tree, compare_cb, ascendant, col, data)
-	Etk_Tree *	tree
-        SV *compare_cb
-	Etk_Bool	ascendant
-	Etk_Tree_Col *	col
-	SV *	data
-      ALIAS:
-	Sort=1
-      CODE:
-        Callback_Tree_Compare_Data *cbd;
-        
-        cbd = calloc(1, sizeof(Callback_Tree_Compare_Data));
-        cbd->object = ETK_OBJECT(col);
-        cbd->perl_data = newSVsv(data);
-        cbd->perl_callback = newSVsv(compare_cb);
-        etk_tree_sort(tree, tree_compare_cb, ascendant, col, cbd);
-
-void 
-etk_tree_sort_alpha(tree, ascendant, col, data)
-	Etk_Tree *    tree
-	Etk_Bool        ascendant
-	Etk_Tree_Col *  col
-	SV *    data
-      ALIAS:
-	SortAlpha=1
-	CODE:
-	etk_tree_sort(tree, tree_compare_alpha_cb, ascendant, col, data);
-
-void 
-etk_tree_sort_numeric(tree, ascendant, col, data)
-	Etk_Tree *    tree
-	Etk_Bool        ascendant
-	Etk_Tree_Col *  col
-	SV *    data
-      ALIAS:
-	SortNumeric=1
-	CODE:
-	etk_tree_sort(tree, tree_compare_numeric_cb, ascendant, col, data);
+#
+# void
+# etk_tree_sort(tree, compare_cb, ascendant, col, data)
+#	Etk_Tree *	tree
+#        SV *compare_cb
+#	Etk_Bool	ascendant
+#	Etk_Tree_Col *	col
+#	SV *	data
+#      ALIAS:
+#	Sort=1
+#      CODE:
+#        Callback_Tree_Compare_Data *cbd;
+#        
+#        cbd = calloc(1, sizeof(Callback_Tree_Compare_Data));
+#        cbd->object = ETK_OBJECT(col);
+#        cbd->perl_data = newSVsv(data);
+#        cbd->perl_callback = newSVsv(compare_cb);
+#        etk_tree_sort(tree, tree_compare_cb, ascendant, col, cbd);
+#
+# void 
+# etk_tree_sort_alpha(tree, ascendant, col, data)
+#	Etk_Tree *    tree
+#	Etk_Bool        ascendant
+#	Etk_Tree_Col *  col
+#	SV *    data
+#      ALIAS:
+#	SortAlpha=1
+#	CODE:
+#	etk_tree_sort(tree, tree_compare_alpha_cb, ascendant, col, data);
+#
+# void 
+# etk_tree_sort_numeric(tree, ascendant, col, data)
+#	Etk_Tree *    tree
+#	Etk_Bool        ascendant
+#	Etk_Tree_Col *  col
+#	SV *    data
+#      ALIAS:
+#	SortNumeric=1
+#	CODE:
+#	etk_tree_sort(tree, tree_compare_numeric_cb, ascendant, col, data);
 
 void
 etk_tree_thaw(tree)
@@ -4095,29 +4384,32 @@ etk_tree_unselect_all(tree)
 	UnselectAll=1
 
 SV *
-etk_tree_col_new(tree, title, model, width)
+etk_tree_col_new(tree, title, width, alignment)
 	Etk_Tree *	tree
 	char *	title
-	SV *	model
 	int	width
+	float	alignment
+	ALIAS:
+	ColNew=1
 	CODE:
-	Etk_Tree_Model * modeldata;
 	Etk_Tree_Col * col;
-	SV ** model_type;
-
-	modeldata = (Etk_Tree_Model *) SvObj(model, "Etk::Tree::Model");
-
-	col = etk_tree_col_new(tree, title, modeldata, width);
-	RETVAL = newSVObj(col, getClass("Etk_Tree_Col"));
-
-	model_type = hv_fetch( (HV*)SvRV(model), "_model", 6, 0);
-	if (model_type) {
-		int type = SvIV(*model_type);
-		hv_store( (HV*)SvRV(RETVAL), "_model", 6, newSViv(type), 0);
-	}
+	col = etk_tree_col_new(tree, title, width, alignment);
+	RETVAL = newSVObject(col);
 	OUTPUT:
 	RETVAL
-	
+
+void
+etk_tree_rows_height_set(tree, rows_height)
+	Etk_Tree *tree
+	int rows_height
+	ALIAS:
+	RowsHeightSet=1
+
+int
+etk_tree_rows_height_get(tree)
+	Etk_Tree *tree
+	ALIAS:
+	RowsHeightGet=1
 
 
 MODULE = Etk::Tree::Col	PACKAGE = Etk::Tree::Col	PREFIX = etk_tree_col_
@@ -4149,17 +4441,17 @@ etk_tree_col_min_width_set(col, min_width)
 	MinWidthSet=1
 
 int
-etk_tree_col_place_get(col)
+etk_tree_col_position_get(col)
 	Etk_Tree_Col *	col
       ALIAS:
-	PlaceGet=1
+	PositionGet=1
 
 void
-etk_tree_col_reorder(col, new_place)
+etk_tree_col_position_set(col, position)
 	Etk_Tree_Col *	col
-	int	new_place
+	int	position
       ALIAS:
-	Reorder=1
+	PositionSet=1
 
 Etk_Bool
 etk_tree_col_resizable_get(col)
@@ -4175,12 +4467,12 @@ etk_tree_col_resizable_set(col, resizable)
 	ResizableSet=1
 
 void
-etk_tree_col_sort_func_set(col, compare_cb, data)
+etk_tree_col_sort_set(col, compare_cb, data)
         Etk_Tree_Col *  col
         SV * compare_cb
         SV * data
       ALIAS:
-	SortFuncSet=1
+	SortSet=1
       CODE:
 	Callback_Tree_Compare_Data *cbd;
 	
@@ -4188,33 +4480,25 @@ etk_tree_col_sort_func_set(col, compare_cb, data)
 	cbd->object = ETK_OBJECT(col);
         cbd->perl_data = newSVsv(data);
         cbd->perl_callback = newSVsv(compare_cb);	
-        etk_tree_col_sort_func_set(col, tree_compare_cb, cbd);
+        etk_tree_col_sort_set(col, tree_compare_cb, cbd);
 
 void
-etk_tree_col_sort_func_alpha_set(col, data)
+etk_tree_col_sort_alpha_set(col, data)
 	Etk_Tree_Col *  col
 	SV * data
       ALIAS:
-	SortFuncAlphaSet=1
+	SortAlphaSet=1
 	CODE:
-	etk_tree_col_sort_func_set(col, tree_compare_alpha_cb, data);
+	etk_tree_col_sort_set(col, tree_compare_alpha_cb, data);
 	
 void
-etk_tree_col_sort_func_numeric_set(col, data)
+etk_tree_col_sort_numeric_set(col, data)
 	Etk_Tree_Col *  col
 	SV * data
       ALIAS:
-	SortFuncNumericSet=1
+	SortNumericSet=1
 	CODE:
-	etk_tree_col_sort_func_set(col, tree_compare_numeric_cb, data);
-
-void
-etk_tree_col_sort_func_set2(col, compare_cb, data)
-	Etk_Tree_Col *	col
-	int ( * ) ( Etk_Tree * tree, Etk_Tree_Row * row1, Etk_Tree_Row *row2, Etk_Tree_Col * col, void * data ) compare_cb
-	void *	data
-      ALIAS:
-	SortFuncSet2=1
+	etk_tree_col_sort_set(col, tree_compare_numeric_cb, data);
 
 const char *
 etk_tree_col_title_get(col)
@@ -4255,30 +4539,39 @@ etk_tree_col_width_set(col, width)
       ALIAS:
 	WidthSet=1
 
+Etk_Tree *
+etk_tree_col_tree_get(col)
+	Etk_Tree_Col	*col
+	ALIAS:
+	TreeGet=1
+
+void
+XS_etk_tree_col_model_add(col, model)
+	Etk_Tree_Col	*col
+	Etk_Tree_Model	*model
+	CODE:
+	etk_tree_col_model_add(col, model);
+
+Etk_Widget *
+etk_tree_col_header_get(col)
+	Etk_Tree_Col    *col
+	ALIAS:
+	HeaderGet=1
+
+void
+etk_tree_col_alignment_set(col, alignment)
+	Etk_Tree_Col    *col
+	float	alignment
+	ALIAS:
+	AlignmentSet=1
+
+float
+etk_tree_col_alignment_get(col)
+	Etk_Tree_Col    *col
+	ALIAS:
+	AlignmentGet=1
 
 MODULE = Etk::Tree::Model	PACKAGE = Etk::Tree::Model	PREFIX = etk_tree_model_
-
-void
-etk_tree_model_alignment_get(model)
-	Etk_Tree_Model *	model
-      ALIAS:
-	AlignmentGet=1
-	PPCODE:
-	
-	float xalign;
-	float yalign;
-	etk_tree_model_alignment_get(model, &xalign, &yalign);
-	EXTEND(SP, 2);
-	PUSHs(sv_2mortal(newSVnv(xalign)));
-	PUSHs(sv_2mortal(newSVnv(yalign)));
-
-void
-etk_tree_model_alignment_set(model, xalign, yalign)
-	Etk_Tree_Model *	model
-	float	xalign
-	float	yalign
-      ALIAS:
-	AlignmentSet=1
 
 void
 etk_tree_model_free(model)
@@ -4290,13 +4583,12 @@ etk_tree_model_free(model)
 MODULE = Etk::Tree::Model::Checkbox	PACKAGE = Etk::Tree::Model::Checkbox	PREFIX = etk_tree_model_checkbox_
 
 void
-new(class, tree)
+new(class)
 	SV * class
-	Etk_Tree *	tree
 	PPCODE:
 	Etk_Tree_Model * model;
 	SV * ret;
-	model = etk_tree_model_checkbox_new(tree);
+	model = etk_tree_model_checkbox_new();
 	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mCHECKBOX), 0);
 	XPUSHs(sv_2mortal(ret));
@@ -4305,83 +4597,60 @@ new(class, tree)
 MODULE = Etk::Tree::Model::Double	PACKAGE = Etk::Tree::Model::Double	PREFIX = etk_tree_model_double_
 
 void
-new(class, tree)
+new(class)
 	SV * class
-	Etk_Tree *	tree
 	PPCODE:
 	Etk_Tree_Model * model;
 	SV * ret;
-	model = etk_tree_model_double_new(tree);
+	model = etk_tree_model_double_new();
 	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mDOUBLE), 0);
-	XPUSHs(sv_2mortal(ret));
-
-
-MODULE = Etk::Tree::Model::IconText	PACKAGE = Etk::Tree::Model::IconText	PREFIX = etk_tree_model_icon_text_
-
-int
-etk_tree_model_icon_text_icon_width_get(model)
-	Etk_Tree_Model *	model
-      ALIAS:
-	IconWidthGet=1
-
-void
-etk_tree_model_icon_text_icon_width_set(model, icon_width)
-	Etk_Tree_Model *	model
-	int	icon_width
-      ALIAS:
-	IconWidthSet=1
-
-void
-new(class, tree, type)
-	SV * class
-	Etk_Tree *	tree
-	Etk_Tree_Model_Image_Type type
-	PPCODE:
-	Etk_Tree_Model * model;
-	SV * ret;
-	SV * mod;
-	if (type == ETK_TREE_FROM_FILE)
-		mod = newSViv(mICONTEXTF);
-	else
-		mod = newSViv(mICONTEXTE);
-
-	model = etk_tree_model_icon_text_new(tree, type);
-	ret = newSVObj(model, getClass("Etk_Tree_Model"));
-	hv_store( (HV*)SvRV(ret), "_model", 6, mod, 0);
 	XPUSHs(sv_2mortal(ret));
 
 
 MODULE = Etk::Tree::Model::Image	PACKAGE = Etk::Tree::Model::Image	PREFIX = etk_tree_model_image_
 
 void
-new(class, tree, type)
+new(class)
 	SV * class
-	Etk_Tree *	tree
-	Etk_Tree_Model_Image_Type type
 	PPCODE:
 	Etk_Tree_Model * model;
 	SV * ret;
-	SV * mod;
-	if (type == ETK_TREE_FROM_FILE)
-		mod = newSViv(mIMAGEF);
-	else
-		mod = newSViv(mIMAGEE);
-	model = etk_tree_model_image_new(tree, type);
+	model = etk_tree_model_image_new();
 	ret = newSVObj(model, getClass("Etk_Tree_Model"));
-	hv_store( (HV*)SvRV(ret), "_model", 6, mod, 0);
+	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mIMAGE), 0);
 	XPUSHs(sv_2mortal(ret));
+
+void
+etk_tree_model_image_width_set(model, width, alignment)
+	Etk_Tree_Model *	model
+	int	width
+	float	alignment
+	ALIAS:
+	WidthSet=1
+
+void
+etk_tree_model_image_width_get(model)
+	Etk_Tree_Model *	model
+	ALIAS:
+	WidthGet=1
+	PPCODE:
+	int width;
+	float alignment;
+	etk_tree_model_image_width_get(model, &width, &alignment);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(width)));
+	PUSHs(sv_2mortal(newSViv(alignment)));
 
 MODULE = Etk::Tree::Model::Int	PACKAGE = Etk::Tree::Model::Int	PREFIX = etk_tree_model_int_
 
 void
-new(class, tree)
+new(class)
 	SV * class
-	Etk_Tree *	tree
 	PPCODE:
 	Etk_Tree_Model * model;
 	SV * ret;
-	model = etk_tree_model_int_new(tree);
+	model = etk_tree_model_int_new();
 	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mINT), 0);
 	XPUSHs(sv_2mortal(ret));
@@ -4391,13 +4660,12 @@ new(class, tree)
 MODULE = Etk::Tree::Model::ProgressBar	PACKAGE = Etk::Tree::Model::ProgressBar	PREFIX = etk_tree_model_progress_bar_
 
 void
-new(class, tree)
+new(class)
 	SV * class
-	Etk_Tree *	tree
 	PPCODE:
 	Etk_Tree_Model * model;
 	SV * ret;
-	model = etk_tree_model_progress_bar_new(tree);
+	model = etk_tree_model_progress_bar_new();
 	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mPROGRESSBAR), 0);
 	XPUSHs(sv_2mortal(ret));
@@ -4406,13 +4674,12 @@ new(class, tree)
 MODULE = Etk::Tree::Model::Text	PACKAGE = Etk::Tree::Model::Text	PREFIX = etk_tree_model_text_
 
 void
-new(class, tree)
+new(class)
 	SV * class
-	Etk_Tree *	tree
 	PPCODE:
 	Etk_Tree_Model * model;
 	SV * ret;
-	model = etk_tree_model_text_new(tree);
+	model = etk_tree_model_text_new();
 	ret = newSVObj(model, getClass("Etk_Tree_Model"));
 	hv_store( (HV*)SvRV(ret), "_model", 6, newSViv(mTEXT), 0);
 	XPUSHs(sv_2mortal(ret));
@@ -4420,11 +4687,41 @@ new(class, tree)
 
 MODULE = Etk::Tree::Row	PACKAGE = Etk::Tree::Row	PREFIX = etk_tree_row_
 
-void
-etk_tree_row_collapse(row)
+
+Etk_Tree_Row *
+etk_tree_row_next_get(row)
 	Etk_Tree_Row *	row
       ALIAS:
-	Collapse=1
+	NextGet=1
+
+Etk_Tree_Row *
+etk_tree_row_prev_get(row)
+	Etk_Tree_Row *	row
+      ALIAS:
+	PrevGet=1
+
+void etk_tree_row_delete(row)
+	Etk_Tree_Row *	row
+	ALIAS:
+	Delete=1
+
+void
+etk_tree_row_fold(row)
+	Etk_Tree_Row *	row
+      ALIAS:
+	Fold=1
+
+void
+etk_tree_row_unfold(row)
+	Etk_Tree_Row *	row
+	ALIAS:
+	Unfold=1
+
+Etk_Bool
+etk_tree_row_is_folded(row)
+	Etk_Tree_Row *	row
+	ALIAS:
+	IsFolded=1
 
 SV *
 etk_tree_row_data_get(row)
@@ -4445,62 +4742,142 @@ etk_tree_row_data_set(row, data)
         CODE:
         etk_tree_row_data_set(row, newSVsv(data));
 
-void
-etk_tree_row_del(row)
-	Etk_Tree_Row *	row
-      ALIAS:
-	Del=1
 
 void
-etk_tree_row_expand(row)
-	Etk_Tree_Row *	row
-      ALIAS:
-	Expand=1
-
-
-void
-fields_set(row, col, ...)
+model_fields_set(row, emit_signal, model, ...)
 	Etk_Tree_Row * row
+	Etk_Bool	emit_signal
+	SV * model
+     ALIAS:
+	ModelFieldsSet=1
+	PREINIT:
+	Etk_Tree_Model * etkmodel;
+	SV ** mod;
+	CODE:
+	etkmodel = (Etk_Tree_Model *) SvObj(model, "Etk::Tree::Model");
+	mod = hv_fetch( (HV*)SvRV(model), "_model", 6, 0);
+	if (mod) {
+	int type = SvIV(*mod);
+	switch(type) {
+	   case mINT:
+		etk_tree_row_model_fields_set(row, emit_signal, etkmodel, SvIV(ST(3)), NULL);
+		break;
+	   case mDOUBLE:
+		     etk_tree_row_model_fields_set(row, emit_signal, etkmodel, SvNV(ST(3)), NULL);
+		     break;
+		  case mCHECKBOX:
+		     etk_tree_row_model_fields_set(row, emit_signal, etkmodel, SvIV(ST(3)), NULL);
+		     break;
+		  case mIMAGE:
+		     if (items == 4)
+		        etk_tree_row_model_fields_set(row, emit_signal, etkmodel,
+		     	   SvPV_nolen(ST(3)), NULL, NULL);
+		     else
+		        etk_tree_row_model_fields_set(row, emit_signal, etkmodel,
+		     	   SvPV_nolen(ST(3)), SvPV_nolen(ST(4)), NULL);
+		     break;
+		  case mPROGRESSBAR:
+		     break;
+		  case mTEXT:
+		     etk_tree_row_model_fields_set(row, emit_signal, etkmodel, SvPV_nolen(ST(3)), NULL);
+		     break;
+               }
+	     }
+
+
+void
+model_fields_get(row, model)
+	Etk_Tree_Row * row
+	SV * model
+      ALIAS:
+	ModelFieldsGet=1
+	PREINIT:
+	Etk_Tree_Model * mod;
+	SV ** models;
+	int i;
+	Etk_Bool c;
+	double d;
+	char *c1, *c2, *c3;
+	PPCODE:
+	mod = (Etk_Tree_Model *) SvObj(model, "Etk::Tree::Model");
+	models = hv_fetch( (HV*)SvRV(model), "_model", 6, 0);
+	if (models) {
+	       int type = SvIV(*models);
+	       switch(type) {
+	          case mINT:
+			etk_tree_row_model_fields_get(row, mod, &i, NULL);
+			XPUSHs(sv_2mortal(newSViv(i)));
+		     break;
+		  case mDOUBLE:
+			etk_tree_row_model_fields_get(row, mod, &d, NULL);
+			XPUSHs(sv_2mortal(newSVnv(d)));
+			break;
+		  case mCHECKBOX:
+			etk_tree_row_model_fields_get(row, mod, &c, NULL);
+			XPUSHs(sv_2mortal(newSViv(c)));
+			break;
+		  case mIMAGE:
+			etk_tree_row_model_fields_get(row, mod, &c1, &c2, NULL);
+			XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
+			if (c2) XPUSHs(sv_2mortal(newSVpv(c2, strlen(c2))));
+		     break;
+		  case mPROGRESSBAR:
+			//etk_tree_row_model_fields_get(row, mod, &d, &c1, NULL);
+			//XPUSHs(sv_2mortal(newSVnv(d)));
+			//XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
+		     break;
+		  case mTEXT:
+			etk_tree_row_model_fields_get(row, mod, &c1, NULL);
+			XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
+		     break;
+               }
+	     }
+
+void
+fields_set(row, emit_signal, col, ...)
+	Etk_Tree_Row * row
+	Etk_Bool	emit_signal
 	SV * col
      ALIAS:
 	FieldsSet=1
 	PREINIT:
 	Etk_Tree_Col * column;
+	SV ** models;
 	SV ** model;
 	CODE:
-	
 	column = (Etk_Tree_Col *) SvObj(col, "Etk::Tree::Col");
-
-	model = hv_fetch( (HV*)SvRV(col), "_model", 6, 0);
-	if (model) {
-		int type = SvIV(*model);
-		switch(type) {
-			case mINT:
-			case mCHECKBOX:
-				etk_tree_row_fields_set(row, column, SvIV(ST(2)), NULL);
-				break;
-			case mDOUBLE:
-				etk_tree_row_fields_set(row, column, SvNV(ST(2)), NULL);
-				break;
-			case mICONTEXTF:
-				etk_tree_row_fields_set(row, column, SvPV_nolen(ST(2)), SvPV_nolen(ST(3)), NULL);
-				break;
-			case mICONTEXTE:
-				etk_tree_row_fields_set(row, column, SvPV_nolen(ST(2)), SvPV_nolen(ST(3)), SvPV_nolen(ST(4)), NULL);
-				break;
-			case mIMAGEF:
-				etk_tree_row_fields_set(row, column, SvPV_nolen(ST(2)), NULL);
-				break;
-			case mIMAGEE:
-				etk_tree_row_fields_set(row, column, SvPV_nolen(ST(2)), SvPV_nolen(ST(3)), NULL);
-				break;
-			case mPROGRESSBAR:
-				etk_tree_row_fields_set(row, column, SvNV(ST(2)), SvPV_nolen(ST(3)), NULL);
-				break;
-			case mTEXT:
-				etk_tree_row_fields_set(row, column, SvPV_nolen(ST(2)), NULL);
-				break;
-		}
+	models = hv_fetch( (HV*)SvRV(col), "_models", 7, 0);
+	if (models) {
+           AV * mods = (AV *) SvRV(*models);
+	   int total = (int)av_len(mods);
+	      model = av_fetch(mods, 0, 0);
+	      if (model) {
+	       int type = SvIV(*model);
+	       switch(type) {
+	          case mINT:
+		     etk_tree_row_fields_set(row, emit_signal, column, SvIV(ST(3)), NULL);
+		     break;
+		  case mDOUBLE:
+		     etk_tree_row_fields_set(row, emit_signal, column, SvNV(ST(3)), NULL);
+		     break;
+		  case mCHECKBOX:
+		     etk_tree_row_fields_set(row, emit_signal, column, SvIV(ST(3)), NULL);
+		     break;
+		  case mIMAGE:
+		     if (items == 4)
+		        etk_tree_row_fields_set(row, emit_signal, column, 
+		     	   SvPV_nolen(ST(3)), NULL, NULL);
+		     else
+		        etk_tree_row_fields_set(row, emit_signal, column, 
+		     	   SvPV_nolen(ST(3)), SvPV_nolen(ST(4)), NULL);
+		     break;
+		  case mPROGRESSBAR:
+		     break;
+		  case mTEXT:
+		     etk_tree_row_fields_set(row, emit_signal, column, SvPV_nolen(ST(3)), NULL);
+		     break;
+               }
+	     }
 	}
 
 
@@ -4512,61 +4889,50 @@ fields_get(row, col)
 	FieldsGet=1
 	PREINIT:
 	Etk_Tree_Col * column;
+	SV ** models;
 	SV ** model;
 	int i;
 	Etk_Bool c;
 	double d;
 	char *c1, *c2, *c3;
 	PPCODE:
-
 	column = (Etk_Tree_Col *) SvObj(col, "Etk::Tree::Col");
-
-	model = hv_fetch( (HV*)SvRV(col), "_model", 6, 0);
-	if (model) {
-		int type = SvIV(*model);
-		switch(type) {
-			case mINT:
-				etk_tree_row_fields_get(row, column, &i, NULL);
-				XPUSHs(sv_2mortal(newSViv(i)));
-				break;
-			case mCHECKBOX:
-				etk_tree_row_fields_get(row, column, &c, NULL);
-				XPUSHs(sv_2mortal(newSViv(c)));
-				break;
-			case mDOUBLE:
-				etk_tree_row_fields_get(row, column, &d, NULL);
-				XPUSHs(sv_2mortal(newSVnv(d)));
-				break;
-			case mICONTEXTE:
-				etk_tree_row_fields_get(row, column, &c1, &c2, &c3, NULL);
-				XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
-				XPUSHs(sv_2mortal(newSVpv(c2, strlen(c2))));
-				XPUSHs(sv_2mortal(newSVpv(c3, strlen(c3))));
-				break;
-			case mICONTEXTF:
-				etk_tree_row_fields_get(row, column, &c1, &c2, NULL);
-				XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
-				XPUSHs(sv_2mortal(newSVpv(c2, strlen(c2))));
-				break;
-			case mIMAGEF:
-				etk_tree_row_fields_get(row, column, &c1, NULL);
-				XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
-				break;
-			case mIMAGEE:
-				etk_tree_row_fields_get(row, column, &c1, &c2, NULL);
-				XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
-				XPUSHs(sv_2mortal(newSVpv(c2, strlen(c2))));
-				break;
-			case mPROGRESSBAR:
-				etk_tree_row_fields_get(row, column, &d, &c1, NULL);
-				XPUSHs(sv_2mortal(newSVnv(d)));
-				XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
-				break;
-			case mTEXT:
-				etk_tree_row_fields_get(row, column, &c1, NULL);
-				XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
-				break;
-		}
+	models = hv_fetch( (HV*)SvRV(col), "_models", 7, 0);
+	if (models) {
+           AV * mods = (AV *) SvRV(*models);
+	   int total = (int)av_len(mods);
+	      model = av_fetch(mods, 0, 0);
+	      if (model) {
+	       int type = SvIV(*model);
+	       switch(type) {
+	          case mINT:
+			etk_tree_row_fields_get(row, column, &i, NULL);
+			XPUSHs(sv_2mortal(newSViv(i)));
+		     break;
+		  case mDOUBLE:
+			etk_tree_row_fields_get(row, column, &d, NULL);
+			XPUSHs(sv_2mortal(newSVnv(d)));
+			break;
+		  case mCHECKBOX:
+			etk_tree_row_fields_get(row, column, &c, NULL);
+			XPUSHs(sv_2mortal(newSViv(c)));
+			break;
+		  case mIMAGE:
+			etk_tree_row_fields_get(row, column, &c1, &c2, NULL);
+			XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
+			if (c2) XPUSHs(sv_2mortal(newSVpv(c2, strlen(c2))));
+		     break;
+		  case mPROGRESSBAR:
+			//etk_tree_row_fields_get(row, column, &d, &c1, NULL);
+			//XPUSHs(sv_2mortal(newSVnv(d)));
+			//XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
+		     break;
+		  case mTEXT:
+			etk_tree_row_fields_get(row, column, &c1, NULL);
+			XPUSHs(sv_2mortal(newSVpv(c1, strlen(c1))));
+		     break;
+               }
+	     }
 	}
 
 
@@ -4576,31 +4942,16 @@ etk_tree_row_first_child_get(row)
       ALIAS:
 	FirstChildGet=1
 
-int
-etk_tree_row_height_get(tree)
-	Etk_Tree *	tree
-      ALIAS:
-	HeightGet=1
-
-void
-etk_tree_row_height_set(tree, row_height)
-	Etk_Tree *	tree
-	int	row_height
-      ALIAS:
-	HeightSet=1
-
 Etk_Tree_Row *
-etk_tree_row_last_child_get(row, walking_through_hierarchy, include_collapsed_children)
+etk_tree_row_last_child_get(row)
 	Etk_Tree_Row *	row
-	Etk_Bool	walking_through_hierarchy
-	Etk_Bool	include_collapsed_children
       ALIAS:
 	LastChildGet=1
 
 void
-etk_tree_row_scroll_to(row, center_the_row)
+etk_tree_row_scroll_to(row, center)
 	Etk_Tree_Row *	row
-	Etk_Bool	center_the_row
+	Etk_Bool	center
       ALIAS:
 	ScrollTo=1
 
@@ -4616,6 +4967,37 @@ etk_tree_row_unselect(row)
       ALIAS:
 	Unselect=1
 
+Etk_Bool
+etk_tree_row_is_selected(row)
+	Etk_Tree_Row *  row
+	ALIAS:
+	IsSelected=1
+
+Etk_Tree *
+etk_tree_row_tree_get(row)
+	Etk_Tree_Row *	row
+	ALIAS:
+	TreeGet=1
+
+Etk_Tree_Row *
+etk_tree_row_parent_get(row)
+	Etk_Tree_Row *	row
+	ALIAS:
+	ParentGet=1
+	
+Etk_Tree_Row *
+etk_tree_row_walk_prev(row, include_folded)
+	Etk_Tree_Row *	row
+	Etk_Bool	include_folded
+	ALIAS:
+	WalkPrev=1
+
+Etk_Tree_Row *
+etk_tree_row_walk_next(row, include_folded)
+	Etk_Tree_Row *	row
+	Etk_Bool	include_folded
+	ALIAS:
+	WalkNext=1
 
 MODULE = Etk::VBox	PACKAGE = Etk::VBox	PREFIX = etk_vbox_
 	
@@ -4712,13 +5094,6 @@ etk_widget_clip_unset(widget)
       ALIAS:
 	ClipUnset=1
 
-void
-etk_widget_clipboard_received(widget, event)
-	Etk_Widget *	widget
-	Etk_Event_Selection_Request *	event
-      ALIAS:
-	ClipboardReceived=1
-
 Etk_Bool
 etk_widget_dnd_dest_get(widget)
 	Etk_Widget *	widget
@@ -4774,6 +5149,18 @@ etk_widget_dnd_files_get(e)
 	for (i=0; i<*num_files; i++)
 		XPUSHs(sv_2mortal(newSVpv(files[i], strlen(files[i]))));
 	
+void
+etk_widget_focusable_set(widget, focusable)
+	Etk_Widget * widget
+	Etk_Bool focusable
+	ALIAS:
+	FocusableSet=1
+
+Etk_Bool
+etk_widget_focusable_get(widget)
+	Etk_Widget * widget
+	ALIAS:
+	FocusableGet=1
 
 Etk_Bool
 etk_widget_dnd_internal_get(widget)
@@ -4957,29 +5344,10 @@ etk_widget_is_swallowed(widget)
 	IsSwallowed=1
 
 Etk_Bool
-etk_widget_is_swallowing_object(widget, object)
-	Etk_Widget *	widget
-	Evas_Object *	object
-      ALIAS:
-	IsSwallowingObject=1
-
-Etk_Bool
-etk_widget_is_swallowing_widget(widget, swallowed_widget)
-	Etk_Widget *	widget
-	Etk_Widget *	swallowed_widget
-      ALIAS:
-	IsSwallowingWidget=1
-
-Etk_Bool
 etk_widget_is_visible(widget)
 	Etk_Widget *	widget
       ALIAS:
 	IsVisible=1
-
-void
-etk_widget_key_event_propagation_stop()
-      ALIAS:
-	KeyEventPropagationStop=1
 
 void
 etk_widget_leave(widget)
@@ -5036,26 +5404,6 @@ etk_widget_member_object_stack_below(widget, object, below)
 	Evas_Object *	below
       ALIAS:
 	MemberObjectStackBelow=1
-
-const char *
-etk_widget_name_get(widget)
-	Etk_Widget *	widget
-      ALIAS:
-	NameGet=1
-
-void
-etk_widget_name_set(widget, name)
-	Etk_Widget *	widget
-	char *	name
-      ALIAS:
-	NameSet=1
-
-Etk_Widget *
-etk_widget_new(widget_type, first_property, ...)
-	Etk_Type *	widget_type
-	char *	first_property
-      ALIAS:
-	New=1
 
 Etk_Widget *
 etk_widget_parent_get(widget)
@@ -5115,13 +5463,6 @@ etk_widget_repeat_mouse_events_set(widget, repeat_mouse_events)
 	Etk_Bool	repeat_mouse_events
       ALIAS:
 	RepeatMouseEventsSet=1
-
-void
-etk_widget_selection_received(widget, event)
-	Etk_Widget *	widget
-	Etk_Event_Selection_Request *	event
-      ALIAS:
-	SelectionReceived=1
 
 void
 etk_widget_show(widget)
@@ -5205,58 +5546,6 @@ etk_widget_theme_group_set(widget, theme_group)
       ALIAS:
 	ThemeGroupSet=1
 
-int
-etk_widget_theme_object_data_get(widget, data_name, format, ...)
-	Etk_Widget *	widget
-	char *	data_name
-	char * format	
-      ALIAS:
-	ThemeObjectDataGet=1
-
-void
-etk_widget_theme_object_min_size_calc(widget)
-	Etk_Widget *	widget
-      ALIAS:
-	ThemeObjectMinSizeCalc=1
-	PPCODE:
-	int 	w;
-	int 	h;
-
-	etk_widget_theme_object_min_size_calc(widget, &w, &h);
-	EXTEND(SP, 2);
-	PUSHs(sv_2mortal(newSViv(w)));
-	PUSHs(sv_2mortal(newSViv(h)));
-
-void
-etk_widget_theme_object_part_text_set(widget, part_name, text)
-	Etk_Widget *	widget
-	char *	part_name
-	char *	text
-      ALIAS:
-	ThemeObjectPartTextSet=1
-
-void
-etk_widget_theme_object_signal_emit(widget, signal_name)
-	Etk_Widget *	widget
-	char *	signal_name
-      ALIAS:
-	ThemeObjectSignalEmit=1
-
-Etk_Bool
-etk_widget_theme_object_swallow(swallowing_widget, part, object)
-	Etk_Widget *	swallowing_widget
-	char *	part
-	Evas_Object *	object
-      ALIAS:
-	ThemeObjectSwallow=1
-
-void
-etk_widget_theme_object_unswallow(swallowing_widget, object)
-	Etk_Widget *	swallowing_widget
-	Evas_Object *	object
-      ALIAS:
-	ThemeObjectUnswallow=1
-
 Etk_Widget *
 etk_widget_theme_parent_get(widget)
 	Etk_Widget *	widget
@@ -5276,7 +5565,7 @@ etk_widget_toplevel_evas_get(widget)
       ALIAS:
 	ToplevelEvasGet=1
 
-Etk_Toplevel_Widget *
+Etk_Toplevel *
 etk_widget_toplevel_parent_get(widget)
 	Etk_Widget *	widget
       ALIAS:
@@ -5288,6 +5577,12 @@ etk_widget_unfocus(widget)
       ALIAS:
 	Unfocus=1
 
+Etk_Bool
+etk_widget_is_focused(widget)
+	Etk_Widget *	widget
+      ALIAS:
+	IsFocused=1
+
 void
 etk_widget_unswallow_widget(swallowing_widget, widget)
 	Etk_Widget *	swallowing_widget
@@ -5296,17 +5591,191 @@ etk_widget_unswallow_widget(swallowing_widget, widget)
 	UnswallowWidget=1
 
 Etk_Bool
-etk_widget_visibility_locked_get(widget)
+etk_widget_internal_get(widget)
 	Etk_Widget *	widget
       ALIAS:
-	VisibilityLockedGet=1
+	InternalGet=1
 
 void
-etk_widget_visibility_locked_set(widget, visibility_locked)
+etk_widget_internal_set(widget, internal)
 	Etk_Widget *	widget
-	Etk_Bool	visibility_locked
+	Etk_Bool	internal
       ALIAS:
-	VisibilityLockedSet=1
+	InternalSet=1
+
+void
+etk_widget_padding_set(widget, left, right, top, bottom)
+	Etk_Widget *    widget
+	int	left
+	int	right
+	int	top
+	int	bottom
+	ALIAS:
+	PaddingSet=1
+
+void
+etk_widget_padding_get(widget)
+	Etk_Widget *    widget
+	ALIAS:
+	PaddingGet=1
+	PPCODE:
+	int left, right, top, bottom;
+	etk_widget_padding_get(widget, &left, &right, &top, &bottom);
+	EXTEND(SP, 4);
+	PUSHs(sv_2mortal(newSViv(left)));
+	PUSHs(sv_2mortal(newSViv(right)));
+	PUSHs(sv_2mortal(newSViv(top)));
+	PUSHs(sv_2mortal(newSViv(bottom)));
+
+void
+etk_widget_theme_set(widget, theme_file, theme_group)
+	Etk_Widget *    widget
+	const char * 	theme_file
+	const char * 	theme_group
+	ALIAS:
+	ThemeSet=1
+	
+void
+etk_widget_theme_signal_emit(widget, signal_name, size_recalc)
+	Etk_Widget *    widget
+	const char * 	signal_name
+	Etk_Bool	size_recalc
+	ALIAS:
+	ThemeSignalEmit=1
+
+void
+etk_widget_theme_part_text_set(widget, part_name, text)
+	Etk_Widget *    widget
+	const char *    part_name
+	char *		text
+	ALIAS:
+	ThemePartTextSet=1
+	
+Etk_Bool
+etk_widget_swallow_object(swallower, part, object)
+	Etk_Widget *    swallower
+	const char * 	part
+	Evas_Object *	object
+	ALIAS:
+	SwallowObject=1
+
+void
+etk_widget_unswallow_object(swallower, object)
+	Etk_Widget *    swallower
+	Evas_Object *	object
+	ALIAS:
+	UnswallowObject=1
+
+Etk_Widget_Swallow_Error
+etk_widget_swallow_error_get()
+	ALIAS:
+	SwallowErrorGet=1
+
+	 
+MODULE = Etk::Shadow	PACKAGE = Etk::Shadow	PREFIX = etk_shadow_
+
+Etk_Shadow *
+new(class)
+	SV * class
+	CODE:
+	RETVAL = ETK_SHADOW(etk_shadow_new());
+	OUTPUT:
+	RETVAL
+
+void
+etk_shadow_shadow_set(shadow, type, edges, radius, offset_x, offset_y, opacity)
+	Etk_Shadow *shadow
+	Etk_Shadow_Type type
+	Etk_Shadow_Edges edges
+	int radius
+	int offset_x
+	int offset_y 
+	int opacity
+	ALIAS:
+	ShadowSet=1
+
+void
+etk_shadow_shadow_get(shadow)
+	Etk_Shadow *shadow
+	ALIAS:
+	ShadowGet=1
+	PPCODE:
+	Etk_Shadow_Type type;
+	Etk_Shadow_Edges edges;
+	int radius;
+	int offset_x;
+	int offset_y;
+	int opacity;
+
+	etk_shadow_shadow_get(shadow, &type, &edges, &radius, &offset_x, &offset_y, &opacity);
+	EXTEND(SP, 6);
+	PUSHs(sv_2mortal(newSViv(type)));
+	PUSHs(sv_2mortal(newSViv(edges)));
+	PUSHs(sv_2mortal(newSViv(radius)));
+	PUSHs(sv_2mortal(newSViv(offset_x)));
+	PUSHs(sv_2mortal(newSViv(offset_y)));
+	PUSHs(sv_2mortal(newSViv(opacity)));
+
+void
+etk_shadow_shadow_color_set(shadow, r, g, b)
+	Etk_Shadow * shadow
+	int r
+	int g
+	int b
+	ALIAS:
+	ShadowColorSet=1
+
+void
+etk_shadow_shadow_color_get(shadow)
+	Etk_Shadow * shadow
+	ALIAS:
+	ShadowColorGet=1
+	PPCODE:
+	int r, g, b;
+
+	etk_shadow_shadow_color_get(shadow, &r, &g, &b);
+
+	EXTEND(SP, 3);
+	PUSHs(sv_2mortal(newSViv(r)));
+	PUSHs(sv_2mortal(newSViv(g)));
+	PUSHs(sv_2mortal(newSViv(b)));
+
+void 
+etk_shadow_border_set(shadow, border_width)
+	Etk_Shadow *shadow
+	int border_width
+	ALIAS:
+	BorderSet=1
+
+int
+etk_shadow_border_get(shadow)
+	Etk_Shadow * shadow
+	ALIAS:
+	BorderGet=1
+
+void
+etk_shadow_border_color_set(shadow, r, g, b, a)
+	Etk_Shadow *shadow
+	int r
+	int g
+	int b
+	int a
+	ALIAS:
+	BorderColorSet=1
+
+void
+etk_shadow_border_color_get(shadow)
+	Etk_Shadow *shadow
+	ALIAS:
+	BorderColorGet=1
+	PPCODE:
+	int r, g, b, a;
+	etk_shadow_border_color_get(shadow, &r, &g, &b, &a);
+	EXTEND(SP, 4);
+	PUSHs(sv_2mortal(newSViv(r)));
+	PUSHs(sv_2mortal(newSViv(g)));
+	PUSHs(sv_2mortal(newSViv(b)));
+	PUSHs(sv_2mortal(newSViv(a)));
 
 
 MODULE = Etk::Window	PACKAGE = Etk::Window	PREFIX = etk_window_
@@ -5362,19 +5831,6 @@ etk_window_iconified_get(window)
 	Etk_Window *	window
       ALIAS:
 	IconifiedGet=1
-
-Etk_Bool
-etk_window_dnd_aware_get(window)
-	Etk_Window *	window
-      ALIAS:
-	DndAwareGet=1
-
-void
-etk_window_dnd_aware_set(window, on)
-	Etk_Window *	window
-	Etk_Bool	on
-      ALIAS:
-	DndAwareSet=1
 
 Etk_Bool
 etk_window_focused_get(window)
@@ -5541,8 +5997,295 @@ etk_window_wmclass_set(window, window_name, window_class)
 	char *	window_class
       ALIAS:
 	WmclassSet=1
-	 
 
+void
+etk_window_delete_request(window)
+	Etk_Window *	window
+	ALIAS:
+	DeleteRequest=1
+
+void
+etk_window_stacking_set(window, stacking)
+	Etk_Window *    window
+	Etk_Window_Stacking stacking
+	ALIAS:
+	StackingSet=1
+
+Etk_Window_Stacking
+etk_window_stacking_get(window)
+	Etk_Window *    window
+	ALIAS:
+	StackingGet=1
+
+
+MODULE = Etk::Spinner	PACKAGE = Etk::Spinner	PREFIX = etk_spinner_
+
+Etk_Spinner *
+new(class, lower, upper, value, step_increment, page_increment)
+	SV * class
+	double lower
+	double upper
+	double value
+	double step_increment
+	double page_increment
+	CODE:
+	RETVAL = ETK_SPINNER(etk_spinner_new(lower, upper, value, step_increment, page_increment));
+
+void
+etk_spinner_digits_set(spinner, digits)
+	Etk_Spinner * spinner
+	int digits
+	ALIAS:
+	DigitsSet=1
+
+int
+etk_spinner_digits_get(spinner)
+	Etk_Spinner * spinner
+	ALIAS:
+	DigitsGet=1
+
+void
+etk_spinner_snap_to_ticks_set(spinner, snap)
+	Etk_Spinner * spinner
+	Etk_Bool	snap
+	ALIAS:
+	SnapToTicksSet=1
+
+Etk_Bool
+etk_spinner_snap_to_ticks_get(spinner)
+	Etk_Spinner * spinner
+	ALIAS:
+	SnapToTicksGet=1
+	
+void
+etk_spinner_wrap_set(spinner, wrap)
+	Etk_Spinner * spinner
+	Etk_Bool	wrap
+	ALIAS:
+	WrapSet=1
+
+Etk_Bool
+etk_spinner_wrap_get(spinner)
+	Etk_Spinner * spinner
+	ALIAS:
+	WrapGet=1
+
+
+MODULE = Etk::Editable	PACKAGE = Etk::Editable	PREFIX = etk_editable_
+
+Evas_Object *
+etk_editable_add(Evas * evas)
+	ALIAS:
+	Add=1
+
+void
+etk_editable_theme_set(editable, file, group)
+	Evas_Object *editable
+	const char *file
+	const char *group
+	ALIAS:
+	ThemeSet=1
+
+void
+etk_editable_align_set(editable, align)
+	Evas_Object *editable
+	float	align
+	ALIAS:
+	AlignSet=1
+
+float
+etk_editable_align_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	AlignGet=1
+
+void
+etk_editable_password_mode_set(editable, password_mode)
+	Evas_Object *editable
+	Etk_Bool	password_mode
+	ALIAS:
+	PasswordModeSet=1
+
+Etk_Bool
+etk_editable_password_mode_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	PasswordModeGet=1
+
+void
+etk_editable_text_set(editable, text)
+	Evas_Object *editable
+	const char * text
+	ALIAS:
+	TextSet=1
+
+const char *
+etk_editable_text_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	TextGet=1
+
+char *
+etk_editable_text_range_get(editable, start, end)
+	Evas_Object *editable
+	int start
+	int end
+	ALIAS:
+	TextRangeGet=1
+
+int
+etk_editable_text_length_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	TextLengthGet=1
+
+Etk_Bool
+etk_editable_insert(editable, pos, text)
+	Evas_Object *editable
+	int pos
+	const char * text
+	ALIAS:
+	Insert=1
+
+Etk_Bool
+etk_editable_delete(editable, start, end)
+	Evas_Object *editable
+	int start
+	int end
+	ALIAS:
+	Delete=1
+
+void
+etk_editable_cursor_pos_set(editable, pos)
+	Evas_Object *editable
+	int pos
+	ALIAS:
+	CursorPosSet=1
+
+int
+etk_editable_cursor_pos_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorPosGet=1
+
+void 
+etk_editable_cursor_move_to_start(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorMoveToStart=1
+
+void
+etk_editable_cursor_move_to_end(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorMoveToEnd=1
+
+void
+etk_editable_cursor_move_left(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorMoveLeft=1
+
+void
+etk_editable_cursor_move_right(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorMoveRight=1
+
+void
+etk_editable_cursor_show(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorShow=1
+
+void
+etk_editable_cursor_hide(editable)
+	Evas_Object *editable
+	ALIAS:
+	CursorHide=1
+
+void
+etk_editable_selection_pos_set(editable, pos)
+	Evas_Object *editable
+	int pos
+	ALIAS:
+	SelectionPosSet=1
+
+int 
+etk_editable_selection_pos_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionPosGet=1
+
+void
+etk_editable_selection_move_to_start(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionMoveToStart=1
+
+void
+etk_editable_selection_move_to_end(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionMoveToEnd=1
+
+void
+etk_editable_selection_move_left(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionMoveLeft=1
+
+void 
+etk_editable_selection_move_right(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionMoveRight=1
+
+void 
+etk_editable_select_all(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectAll=1
+
+void 
+etk_editable_unselect_all(editable)
+	Evas_Object *editable
+	ALIAS:
+	UnselectAll=1
+
+void
+etk_editable_selection_show(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionShow=1
+
+void
+etk_editable_selection_hide(editable)
+	Evas_Object *editable
+	ALIAS:
+	SelectionHide=1
+
+int
+etk_editable_pos_get_from_coords(editable, x, y)
+	Evas_Object *editable
+	int x
+	int y
+	ALIAS:
+	PosGetFromCoods=1
+
+void
+etk_editable_char_size_get(editable)
+	Evas_Object *editable
+	ALIAS:
+	CharSizeGet=1
+	PPCODE:
+	int w, h;
+	etk_editable_char_size_get(editable, &w, &h);
+	EXTEND(SP, 2);
+	PUSHs(sv_2mortal(newSViv(w)));
+	PUSHs(sv_2mortal(newSViv(h)));
+	
+	
 MODULE = Etk::Timer	PACKAGE = Etk::Timer 
 
 Ecore_Timer *
@@ -5566,6 +6309,61 @@ Delete(timer)
       Ecore_Timer * timer
     CODE:
       ecore_timer_del(timer);
+
+MODULE = Etk::Config	PACKAGE = Etk::Config	PREFIX = etk_config_
+
+Etk_Bool
+etk_config_init()
+	ALIAS:
+	Init=1
+
+void
+etk_config_shutdown()
+	ALIAS:
+	Shutdown=1
+
+Etk_Bool
+etk_config_load()
+	ALIAS:
+	Load=1
+
+Etk_Bool
+etk_config_save()
+	ALIAS:
+	Save=1
+
+const char *
+etk_config_widget_theme_get()
+	ALIAS:
+	WidgetThemeGet=1
+
+void
+etk_config_widget_theme_set(widget_theme)
+	const char *widget_theme
+	ALIAS:
+	WidgetThemeSet=1
+
+const char *
+etk_config_font_get()
+	ALIAS:
+	FontGet=1
+
+void
+etk_config_font_set(font)
+	const char * font
+	ALIAS:
+	FontSet=1
+
+const char *
+etk_config_engine_get()
+	ALIAS:
+	EngineGet=1
+
+void
+etk_config_engine_set(engine)
+	const char *engine
+	ALIAS:
+	EngineSet=1
 
 
 MODULE = Etk		PACKAGE = Etk	PREFIX = etk_

@@ -1,5 +1,5 @@
 TODO:
-	- callback system needs to convert event structs to perl equivalents 
+	- complete callback system
 	- perldoc everything
 	- complete Tests
 		* Combobox
@@ -12,6 +12,9 @@ TODO:
 	- Check for memory usage (I'm not sure if we're leaking or not,
 	  need to do some tests for that)
 	- Fix Combobox append functions (waiting for some functionality in etk)
+	- Image new from data
+	- fix DND
+	- fix Etk::Simple ( image new_from_file requires a key now )
 
 BUGS:
 

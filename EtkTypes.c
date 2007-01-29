@@ -52,6 +52,9 @@ SV * newSVObj(void *object, char * classname)
 	sv_bless(result, gv_stashpv(classname, FALSE));
 	SvREFCNT_dec(h);
 
+#ifdef DEBUG
+	printf("\t>> Object (%p)\n", result);
+#endif
 	return result;
 
 }
@@ -88,6 +91,7 @@ void __etk_perl_init() {
 	__("Etk_Entry",		"Etk::Entry");
 	__("Etk_Filechooser_Widget",		"Etk::Filechooser");
 	__("Etk_Frame",		"Etk::Frame");
+	__("Etk_Fixed",		"Etk::Fixed");
 	__("Etk_Iconbox",		"Etk::Iconbox");
 	__("Etk_Iconbox_Model",		"Etk::Iconbox::Model");
 	__("Etk_Iconbox_Icon",		"Etk::Iconbox::Icon");
@@ -124,6 +128,8 @@ void __etk_perl_init() {
 	__("Etk_VSlider",		"Etk::VSlider");
 	__("Etk_Statusbar",		"Etk::StatusBar");
 	__("Etk_String",		"Etk::String");
+	__("Etk_Spinner",		"Etk::Spinner");
+	__("Etk_Shadow",		"Etk::Shadow");
 	__("Etk_Table",		"Etk::Table");
 	__("Etk_Text_View",		"Etk::TextView");
 	__("Etk_Textblock",		"Etk::TextBlock");
@@ -132,7 +138,7 @@ void __etk_perl_init() {
 	__("Etk_Tool_Button",		"Etk::ToolButton");
 	__("Etk_Tool_Toggle_Button",		"Etk::ToolToggleButton");
 	__("Etk_Toolbar",		"Etk::Toolbar");
-	__("Etk_Toplevel_Widget",		"Etk::ToplevelWidget");
+	__("Etk_Toplevel",		"Etk::Toplevel");
 	__("Etk_Tree",		"Etk::Tree");
 	__("Etk_Tree_Col",		"Etk::Tree::Col");
 	__("Etk_Tree_Row",		"Etk::Tree::Row");
@@ -169,8 +175,9 @@ void __etk_perl_init() {
 					__("ToolToggleButton", "Button");
 				__("Frame", "Bin");
 				__("ScrolledView", "Bin");
-				__("ToplevelWidget", "Bin");
-					__("Window", "ToplevelWidget");
+				__("Shadow", "Bin");
+				__("Toplevel", "Bin");
+					__("Window", "Toplevel");
 						__("Dialog", "Window");
 							__("MessageDialog", "Dialog");
 						__("PopupWindow", "Window");
@@ -185,6 +192,7 @@ void __etk_perl_init() {
 				__("HPaned", "Paned");
 				__("VPaned", "Paned");
 			__("Table", "Container");
+			__("Fixed", "Container");
 		__("Entry", "Widget");
 		__("Filechooser", "Widget");
 		__("Iconbox", "Widget");
@@ -208,6 +216,7 @@ void __etk_perl_init() {
 			__("Scrollbar", "Range");
 				__("HScrollbar", "Scrollbar");
 				__("VScrollbar", "Scrollbar");
+			__("Spinner", "Range");
 		__("Spearator", "Widget");
 			__("HSeparator", "Spearator");
 			__("VSeparator", "Spearator");

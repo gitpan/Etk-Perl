@@ -23,8 +23,9 @@ None by default.
 
 =head1 EXPORTABLE
 
-   combobox fillpolicy messagedialog progressbar scrolledview
-   toplevelwidget tree textblock colorpicker all
+   box combobox fillpolicy messagedialog progressbar scrolledview
+   toplevelwidget tree textblock table colorpicker mouse toolbar
+   button shadow image entry popupwindow window swallow all
  
 =cut
 
@@ -54,6 +55,13 @@ our %EXPORT_TAGS = (
    toolbar	=> [qw/ToolbarIcons ToolbarText ToolbarBothVert ToolbarBothHoriz 
     ToolbarDefault ToolbarHoriz ToolbarVert/],
    button	=> [qw/ButtonIcon ButtonText ButtonBothVert ButtonBothHoriz/],
+   shadow	=> [qw/ShadowNone ShadowInside ShadowOutside ShadowNoEdge ShadowLeft ShadowAll
+    ShadowRight ShadowTop ShadowBottom ShadowLeftRight ShadowTopBottom/],
+   image	=> [qw/ImageFile ImageEdje ImageStock ImageEvasObject ImageData/],
+   entry	=> [qw/ImagePrimary ImageSecondary/],
+   popupwindow	=> [qw/BelowRight BelowLeft AboveRight AboveLeft/],
+   window	=> [qw/Normal Above Below/],
+   swallow	=> [qw/None IncompatibleParent NotRealized NoPart/],
    );
 
 my @all = ();
@@ -238,6 +246,59 @@ use constant {
 };
 
 
+#shadow
+use constant {
+   ShadowNone => 0,
+   ShadowInside => 1,
+   ShadowOutside => 2,
 
+   ShadowNoEdge => 0,
+   ShadowLeft => 1 << 0,
+   ShadowRight => 1 << 1,
+   ShadowTop => 1 << 2,
+   ShadowBottom => 1 << 3   
+};
+use constant {
+   ShadowLeftRight => ShadowLeft | ShadowRight,
+   ShadowTopBottom => ShadowTop | ShadowBottom
+};
+use constant {
+   ShadowAll => ShadowLeftRight | ShadowTopBottom
+};
 
+# image source
+use constant {
+   ImageFile=>0,
+   ImageEdje=>1,
+   ImageStock=>2,
+   ImageEvasObject=>3,
+   ImageData=>4
+};
 
+# entry
+use constant {
+   ImagePrimary=>1,
+   ImageSecondary=>2
+};
+
+# popup window
+use constant {
+   BelowRight=>0,
+   BelowLeft=>1,
+   AboveRight=>2,
+   AboveLeft=>3
+};
+
+# window stacking
+use constant {
+   Normal=>0,
+   Above=>1,
+   Below=>2
+};
+
+# swallow errors
+use constant {
+   IncompatibleParent=>1,
+   NotRealized=>2,
+   NoPart=>3
+};

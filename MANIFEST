@@ -42,7 +42,9 @@ t/Etk/Range.t
 t/Etk/Scrollbar.t
 t/Etk/ScrolledView.t
 t/Etk/Separator.t
+t/Etk/Shadow.t
 t/Etk/Slider.t
+t/Etk/Spinner.t
 t/Etk/StatusBar.t
 t/Etk/Table.t
 t/Etk/TextBlock.t
@@ -57,6 +59,7 @@ t/Etk/Widget.t
 t/Etk/Window.t
 lib/Etk.pm
 lib/Etk/Stock.pm
+lib/Etk/Simple.pm
 lib/Etk/Constants.pm
 META.yml                                 Module meta-data (added by MakeMaker)
 TODO

@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 require XSLoader;
 XSLoader::load('Etk', $VERSION);
@@ -18,19 +18,14 @@ END {
 }
 
 
-package Etk::Tree;
+package Etk::Tree::Col;
 
-sub ColNew {
-	my ($tree, $title, $model, $width) = @_;
-	my $col = col_new($tree, $title, $model, $width);
-	push @{$tree->{_COLS}}, $col;
-	return $col;
-}
+sub model_add { &ModelAdd; }
 
-sub NthColGet {
-	my $self = shift;
-	my $nth = shift || 0;
-	return $self->{_COLS}->[$nth];
+sub ModelAdd {
+	my ($col, $model) = @_;
+	XS_etk_tree_col_model_add($col, $model);
+	push @{$col->{_models}}, $model->{_model};
 }
 
 
@@ -52,6 +47,8 @@ Etk - Perl bindings for the Enlightened ToolKit (Etk)
   $win->ShowAll();
 
   $button->SignalConnect("clicked", \&clicked_cb);
+
+  Etk::Main::Run();
 
   sub clicked_cb
   {
@@ -84,7 +81,7 @@ Hisham Mardam Bey, E<lt>hisham.mardambey@gmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Hisham Mardam Bey
+Copyright (C) 2007 by Chady Kassouf
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.7 or,

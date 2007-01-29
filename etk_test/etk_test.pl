@@ -1,6 +1,7 @@
+#!/usr/bin/perl -w
 use strict;
 use POSIX;
-use Etk;
+use Etk::Simple;
 use Etk::Constants qw/:all/;
 use Etk::Stock qw/:all/;
 
@@ -203,7 +204,7 @@ while (my ($key, $value) = each %frames)
 # Create buttons and attach them
 while (my ($key, $value) = each %buttons)
 {
-    my $button = Etk::Button::new_with_label($value->{label});
+    my $button = Etk::Button->new($value->{label});
     my $table = $frames{ $value->{frame} }->{table};
     my $j = $frames{ $value->{frame} }->{examples};
     $button->SignalConnect("clicked", $value->{cb});
@@ -224,25 +225,25 @@ sub button_window_show
     $win->TitleSet("Etk-Perl Button Test");
     my $vbox = Etk::VBox->new(0, 0);
    
-    my $button = Etk::Button::new_with_label("Normal Button");
+    my $button = Etk::Button->new("Normal Button");
     $vbox->Append($button);
-    $button = Etk::Button::new_with_label("Button with an image");
-    $button->ImageSet(Etk::Image::new_from_file("images/e_icon.png"));
+    $button = Etk::Button->new("Button with an image");
+    $button->ImageSet(Etk::Image->new("images/e_icon.png"));
     $vbox->Append($button);
     $button = Etk::Button->new();
     $vbox->Append($button);
-    $button = Etk::CheckButton::new_with_label("Check Button");
+    $button = Etk::CheckButton->new("Check Button");
     $vbox->Append($button);
     $button = Etk::CheckButton->new();
     $vbox->Append($button);
 
-    my $radio = Etk::RadioButton::new_with_label("Radio Button");
+    my $radio = Etk::RadioButton->new("Radio Button");
     $vbox->Append($radio);
 
-    my $radio2 = Etk::RadioButton::new_from_widget($radio);
+    my $radio2 = Etk::RadioButton->new($radio);
     $vbox->Append($radio2);
 
-    my $toggle = Etk::ToggleButton::new_with_label("Toggle Button");
+    my $toggle = Etk::ToggleButton->new("Toggle Button");
     $vbox->Append($toggle);
     $toggle = Etk::ToggleButton->new();
     $vbox->Append($toggle);
@@ -281,31 +282,47 @@ sub entry_window_show
     $win->TitleSet("Etk-Perl Entry Test");
     my $vbox = Etk::VBox->new(0, 0);    
     $win->Add($vbox);
-    my $hbox = Etk::HBox->new(0, 0);
-    $vbox->Append($hbox);
-    my $label = Etk::Label->new("");
-    $vbox->Append($label);
 
-    my $entry = Etk::Entry->new();
-    $hbox->Append($entry);
+    my $frame = Etk::Frame->new("Normal Entry");
+    $vbox->Append($frame, BoxStart, BoxExpandFill, 0);
 
-    my $button = Etk::Button->new();
-    $button->LabelSet("Print text");
-    $button->SignalConnect("clicked",
-    	sub {
-		$label->Set($entry->TextGet());
-	}
-	);
-    $hbox->Append($button);
+    my $table = Etk::Table->new(2, 2, 0);
+    $frame->Add($table);
 
-    my $button2 = Etk::ToggleButton->new();
-    $button2->LabelSet("Toggle password");
-    $button2->SignalConnect("clicked",
-    	sub {
-		$entry->PasswordModeSet(!$entry->PasswordModeGet());
-	}
-	);
-    $hbox->Append($button2);
+    my $entry_normal = Etk::Entry->new();
+    $entry_normal->TextSet("Here is some text");
+    $table->Attach($entry_normal, 0, 0, 0, 0, 0, 0, TableHExpand | TableHFill);
+    $entry_normal->SizeRequestSet(140, -1);
+
+    my $image = Etk::Image->new(DocumentPrint, SizeSmall);
+    $entry_normal->ImageSet(ImagePrimary, $image);
+    $entry_normal->ClearButtonAdd();
+
+    my $label_normal = Etk::Label->new("");
+    $table->Attach($label_normal, 0, 1, 1, 1, 0, 0, TableHExpand | TableHFill);
+
+    $image->SignalConnect("mouse_click", sub {
+	    $label_normal->Set( $entry_normal->TextGet() )
+    });
+
+    $vbox->Append( Etk::HSeparator->new(), BoxStart, BoxNone, 6);
+
+    $frame = Etk::Frame->new("Password Entry");
+    $vbox->Append($frame, BoxStart, BoxExpandFill, 0);
+    $vbox = Etk::VBox->new(0, 0);
+    $frame->Add($vbox);
+
+    my $password_entry = Etk::Entry->new();
+    $password_entry->TextSet("Password");
+    $password_entry->PasswordModeSet(1);
+    $vbox->Append($password_entry, BoxStart, BoxFill, 0);
+
+    my $button = Etk::CheckButton->new("Password Visible");
+    $vbox->Append($button, BoxStart, BoxFill, 0);
+    $button->SignalConnect("toggled", sub {
+	    $password_entry->PasswordModeSet( ! $password_entry->PasswordModeGet() )
+    });
+
 
     $win->ShowAll();
 }
@@ -376,13 +393,13 @@ sub progbar_window_show
 	}
     );
 
-    $pbar1 = Etk::ProgressBar::new_with_text("0% done");
+    $pbar1 = Etk::ProgressBar->new("0% done");
     $pbar1->SignalConnect("destroyed",
     	sub {
 		$timer1->Delete();
 	});
     $vbox->Append($pbar1);
-    $pbar2 = Etk::ProgressBar::new_with_text("Loading...");
+    $pbar2 = Etk::ProgressBar->new("Loading...");
     $pbar2->PulseStepSet(0.015);
     $pbar2->SignalConnect("destroyed",
     	sub {
@@ -409,207 +426,114 @@ sub tree_window_show
 {
     my $win = Etk::Window->new();
     $win->TitleSet("Etk-Perl Tree Test");
-    my $table = Etk::Table->new(2, 3, 0);
-    my $label = Etk::Label->new("<h1>Tree:</h1>");
-    
-    $table->Attach($label, 0, 0, 0, 0, 0, 0, 
-	HFill | VFill);
+    $win->Resize(440, 500);
+
+    my $vbox = Etk::VBox->new(0, 0);
+    $win->Add($vbox);
     
     my $tree = Etk::Tree->new();
-    $tree->SizeRequestSet(320, 400);
-    $table->AttachDefault($tree, 0, 0, 1, 1);
     $tree->ModeSet(ModeTree);
     $tree->MultipleSelectSet(1);
-    $tree->Freeze();
+
+    $tree->PaddingSet(5, 5, 5, 5);
     
-    my $col1 = $tree->ColNew("Column 1", Etk::Tree::Model::IconText->new($tree, FromEdje), 90);
-    my $col2 = $tree->ColNew("Column 2", Etk::Tree::Model::Double->new($tree), 60);
-    my $col3 = $tree->ColNew("Column 3", Etk::Tree::Model::Image->new($tree, FromFile), 60);
-    my $col4 = $tree->ColNew("Column 4", Etk::Tree::Model::Checkbox->new($tree), 40);
+    $vbox->Append($tree, BoxStart, BoxExpandFill, 0);
+    
+    my $col1 = $tree->ColNew("Column 1", 130, 0.0);
+    my $mod1 = new Etk::Tree::Model::Image;
+    $col1->ModelAdd($mod1);
+    my $mod2 = new Etk::Tree::Model::Text;
+    $col1->ModelAdd($mod2);
+
+    my $col2 = $tree->ColNew("Column 2", 60, 1.0);
+    $col2->ModelAdd(new Etk::Tree::Model::Double);
+
+    my $col3 = $tree->ColNew("Column 3", 60, 0.0);
+    $col3->ModelAdd(new Etk::Tree::Model::Image);
+
+    my $col4 = $tree->ColNew("Column 4", 60, 0.5);
+    $col4->ModelAdd(new Etk::Tree::Model::Checkbox);
+
+    my $status = Etk::StatusBar->new();
+    $vbox->Append($status, BoxStart, BoxFill, 0);
+
+    $tree->SignalConnect("row_clicked",  sub {
+	my $self = shift;
+	my $row = shift;
+	my $event = shift;
+	my $mod = $row->ModelFieldsGet($mod2);
+	my $msg = "Row \"$mod\" clicked (";
+	$msg .= $event->{flags} & MouseTripleClick ? "Triple" :
+		$event->{flags} & MouseDoubleClick ? "Double" : "Single";
+	$msg .= ")";
+	$status->MessagePush($msg, 0);
+
+    });
 
     $col4->SignalConnect("cell_value_changed", 
 	sub {
 		my $self = shift;
 		my $row = shift;
 
-		if ($row->FieldsGet($self)) {
-			print "Checkbox activated\n";
-		} else {
-			print "Checkbox deactivated\n";
-		}
+		my $mod = $row->ModelFieldsGet($mod2);
+		my $msg = "Row \"$mod\" has been " . ($row->FieldsGet($self) ? "checked" : "unchecked");
+		$status->MessagePush($msg, 0);
 	}
     );
 
+    $tree->SignalConnect("key_down", sub {
+    	my $self = shift;
+	my $event = shift;
+	if ($event->{keyname} eq "Delete") {
+		my $row;
+		for ($row = $tree->FirstRowGet(); $row; $row = $row->WalkNext(1)) {
+			if ($row->IsSelected()) {
+				$row->Delete();
+			}
+		}
+		Etk::Signal::Stop();
+	}
+
+    });
+
     $tree->Build();
+    
+    $tree->Freeze();
 
     for(my $i = 0; $i < 1000; $i++)
     {
-	my $row = $tree->Append();
-	$row->FieldsSet($col1, Etk::Theme::IconThemeGet(), "places/user-home_16", "Row1");
-	$row->FieldsSet($col2, 10);
-	$row->FieldsSet($col3, "images/1star.png");
+	my $row = $tree->RowAppend();
 
-	my $row2 = $row->AppendToRow();
-	$row2->FieldsSet($col1, Etk::Theme::IconThemeGet(), "places/folder_16", "Row2");
-	$row2->FieldsSet($col2, 20);
-	$row2->FieldsSet($col3, "images/2stars.png");
-
-	my $row3 = $row2->AppendToRow();
-	$row3->FieldsSet($col1, Etk::Theme::IconThemeGet(), "mimetypes/text-x-generic_16", "Row3");
-	$row3->FieldsSet($col2, 30);
-	$row3->FieldsSet($col3, "images/3stars.png");
-    }
-    $tree->Thaw();
-    
-    $label = Etk::Label->new("<h1>List:</h1>");
-    $table->Attach($label, 1, 1, 0, 0, 0, 0, HFill | VFill);
-    
-    $tree = Etk::Tree->new();
-    $tree->SizeRequestSet(320, 400);
-    $table->AttachDefault($tree, 1, 1, 1, 1);
-    $tree->ModeSet(ModeList);
-    $tree->MultipleSelectSet(1);
-    $tree->Freeze();
-    
-    $col1 = $tree->ColNew("Column 1", Etk::Tree::Model::IconText->new($tree, FromFile), 90);
-    $col2 = $tree->ColNew("Column 2", Etk::Tree::Model::Int->new($tree), 90);
-    $col3 = $tree->ColNew("Column 3", Etk::Tree::Model::Image->new($tree, FromFile), 90);
-
-    my @cols = ($col1, $col2, $col3);
+	$row->ModelFieldsSet(0, $mod1,  Etk::Theme::IconGet(), 
+		Etk::Stock::KeyGet(PlacesUserHome, SizeSmall));
+	$row->ModelFieldsSet(0, $mod2, "Row " . (($i*3)+1));
+	$row->FieldsSet(0, $col2, 10.0);
+	$row->FieldsSet(0, $col3, "images/1star.png");
+	$row->FieldsSet(0, $col4, 0);
 
 
-    $tree->Build();        
-    tree_add_items($tree, 500, @cols);
-
-    $tree->SignalConnect("row_selected", 
-    	sub {
-		my $self = shift;
-		my $row = shift;
-		my $col = $tree->NthColGet(0);
-		my @fields = $row->FieldsGet($col);
-
-		print "Row selected: ", join " ", @fields, "\n";
-	}
-	);
-
-    $tree->SignalConnect("row_unselected", sub { print "Row unselected\n" } );
-
-    $tree->SignalConnect("row_activated", 
-    	sub {
-		my $self = shift;
-		my $row = shift;
-		
-		print "Row activated: ", 
-			$row->FieldsGet($tree->NthColGet(0)), " ",
-			$row->FieldsGet($tree->NthColGet(1)), " ",
-			$row->FieldsGet($tree->NthColGet(2)), "\n";
-	}
-	);
-    
-    my $frame = Etk::Frame->new("List Actions");
-    $table->Attach($frame, 0, 1, 2, 2, 0, 0, HFill | VFill);
-    my $hbox = Etk::HBox->new(1, 10);
-
-    $frame->Add($hbox); 
-    
-    my $button;
-    $button = Etk::Button::new_with_label("Clear");
-    $button->SignalConnect("clicked", sub { $tree->Clear() });
-    $hbox->Append($button, BoxStart, BoxExpandFill);
-
-    $button = Etk::Button::new_with_label("Add 5 rows");
-    $button->SignalConnect("clicked", sub { tree_add_items($tree, 5, @cols) });
-    $hbox->Append($button, BoxStart, BoxExpandFill);
-
-    $button = Etk::Button::new_with_label("Add 50 rows");
-    $button->SignalConnect("clicked", sub { tree_add_items($tree, 50, @cols) });
-    $hbox->Append($button, BoxStart, BoxExpandFill);
-
-    $button = Etk::Button::new_with_label("Add 500 rows");
-    $button->SignalConnect("clicked", sub { tree_add_items($tree, 500, @cols) });
-    $hbox->Append($button, BoxStart, BoxExpandFill);
-
-    $button = Etk::Button::new_with_label("Add 5000 rows");
-    $button->SignalConnect("clicked", sub { tree_add_items($tree, 5000, @cols) });
-    $hbox->Append($button, BoxStart, BoxExpandFill);
-
-    
-    my $ascendant = 1;
-
-    $button = Etk::Button::new_with_label("Sort");
-    
-    $button->SignalConnect("clicked",
-	sub {
-	    #$tree->Sort(\&tree_col2_compare_cb, $ascendant, $col2, undef);   
-	    $tree->SortNumeric($ascendant, $col2, undef);
-	    $ascendant = !$ascendant;
-	}
-    );
-    $hbox->Append($button, BoxStart, BoxExpandFill);    
-    
-    $win->Add($table);
-    $win->ShowAll();
-}
-
-sub tree_col2_compare_cb
-{
-    my $tree = shift;
-    my $row1 = shift;
-    my $row2 = shift;
-    my $col = shift;
-    my $data = shift;
-    
-    my $v1 = $row1->FieldIntGet($col);
-    my $v2 = $row2->FieldIntGet($col);
-    
-    if ($v1 < $v2)
-    {
-	return -1;
-    }
-    elsif ($v1 > $v2)
-    {
-	return 1;
-    }
-    else
-    {
-	return 0;
-    }
-    
-    return 1;
-}
-
-sub tree_add_items
-{
-    my $tree = shift;
-    my $n = shift;
-    my ($col1, $col2, $col3) = @_;
-    
-    $tree->Freeze();
-    for my $i (0 ..  $n)
-    {
-	my $row_name = "Row$i";
-	my $star_path = "";
-	if($i % 3 ==0)
-	{
-	    $star_path = "images/1star.png";
-	} elsif($i % 3 == 1)
-	{
-	    $star_path = "images/2stars.png";
-	} else
-	{
-	    $star_path = "images/3stars.png";
-	}
-	my $rand_value =int( rand(10000));
-
-        
-	my $row = $tree->Append();
-	$row->FieldsSet($col1, "images/1star.png", $row_name);
-	$row->FieldsSet($col2, $rand_value);
-	$row->FieldsSet($col3, $star_path);
-
-    }
-    $tree->Thaw();
+	my $row2 = $tree->RowAppend($row);
+	$row2->ModelFieldsSet(0, $mod1,  Etk::Theme::IconGet(), 
+		Etk::Stock::KeyGet(PlacesUserHome, SizeSmall));
+	$row2->ModelFieldsSet(0, $mod2, "Row " . (($i*3)+2));
 	
+	$row2->FieldsSet(0, $col2, 20.0);
+	$row2->FieldsSet(0, $col3, "images/2stars.png");
+	$row2->FieldsSet(0, $col4, 1);
+
+	my $row3 = $tree->RowAppend($row2);
+	$row3->ModelFieldsSet(0, $mod1,  Etk::Theme::IconGet(), 
+		Etk::Stock::KeyGet(PlacesUserHome, SizeSmall));
+	$row3->ModelFieldsSet(0, $mod2, "Row " . (($i*3)+3));
+	$row3->FieldsSet(0, $col2, 30.0);
+	$row3->FieldsSet(0, $col3, "images/3stars.png");
+	$row3->FieldsSet(0, $col4, 1);
+
+    }
+
+    $tree->Thaw();
+    
+    $win->ShowAll();
 }
 
 sub menu_window_show
@@ -626,18 +550,18 @@ sub menu_window_show
     my $toolbar = Etk::Toolbar->new();
     $box->Append($toolbar);
 
-    $toolbar->Append(Etk::Button::new_from_stock(EditCopy));
-    $toolbar->Append(Etk::Button::new_from_stock(EditCut));
-    $toolbar->Append(Etk::Button::new_from_stock(EditPaste));
+    $toolbar->Append(Etk::Button->new(EditCopy));
+    $toolbar->Append(Etk::Button->new(EditCut));
+    $toolbar->Append(Etk::Button->new(EditPaste));
 
     $toolbar->Append(Etk::VSeparator->new());
 
-    $toolbar->Append(Etk::Button::new_from_stock(EditUndo));
-    $toolbar->Append(Etk::Button::new_from_stock(EditRedo));
+    $toolbar->Append(Etk::Button->new(EditUndo));
+    $toolbar->Append(Etk::Button->new(EditRedo));
 
     $toolbar->Append(Etk::VSeparator->new());
 
-    $toolbar->Append(Etk::Button::new_from_stock(EditFind));
+    $toolbar->Append(Etk::Button->new(EditFind));
 
     my $label = Etk::Label->new("Click me :)");
     $label->AlignmentSet(0.5, 0.5);
@@ -710,12 +634,12 @@ sub menu_window_show
 sub _menu_test_item_new
 {
     my ($label, $menubar, $statusbar) = @_;
-    my $menu_item = Etk::Menu::Item::new_with_label($label);
+    my $menu_item = Etk::Menu::Item->new($label);
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
-    	sub { $statusbar->Push($menu_item->LabelGet(), 0) });
+    	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
     $menu_item->SignalConnect("deselected", 
-    	sub { $statusbar->Pop(0) });
+    	sub { $statusbar->MessagePop(0) });
     
     return $menu_item;
 }
@@ -724,14 +648,14 @@ sub _menu_test_stock_item_new
 {
     my ($label, $stockid, $menubar, $statusbar) = @_;
 
-    my $menu_item = Etk::Menu::Item::Image::new_with_label($label);
-    my $image = Etk::Image::new_from_stock($stockid, SizeSmall);
+    my $menu_item = Etk::Menu::Item::Image->new($label);
+    my $image = Etk::Image->new($stockid, SizeSmall);
     $menu_item->Set($image);
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
-    	sub { $statusbar->Push($menu_item->LabelGet(), 0) });
+    	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
     $menu_item->SignalConnect("deselected", 
-    	sub { $statusbar->Pop(0) });
+    	sub { $statusbar->MessagePop(0) });
 
     return $menu_item;
 
@@ -741,12 +665,12 @@ sub _menu_test_check_item_new
 {
     my ($label, $menubar, $statusbar) = @_;
 
-    my $menu_item = Etk::Menu::Item::Check::new_with_label($label);
+    my $menu_item = Etk::Menu::Item::Check->new($label);
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
-    	sub { $statusbar->Push($menu_item->LabelGet(), 0) });
+    	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
     $menu_item->SignalConnect("deselected", 
-    	sub { $statusbar->Pop(0) });
+    	sub { $statusbar->MessagePop(0) });
 
     return $menu_item;
 }
@@ -758,17 +682,17 @@ sub _menu_test_radio_item_new
     my $menu_item;
     if ($radio) 
     {
-        $menu_item = Etk::Menu::Item::Radio::new_with_label_from_widget($label, $radio);
+        $menu_item = Etk::Menu::Item::Radio->new($label, $radio);
     }
     else
     {
-        $menu_item = Etk::Menu::Item::Radio::new_with_label($label);
+        $menu_item = Etk::Menu::Item::Radio->new($label);
     }
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
-    	sub { $statusbar->Push($menu_item->LabelGet(), 0) });
+    	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
     $menu_item->SignalConnect("deselected", 
-    	sub { $statusbar->Pop(0) });
+    	sub { $statusbar->MessagePop(0) });
 
     return $menu_item;
 }
@@ -803,7 +727,7 @@ sub combobox_window_show
     my $vbox2 = Etk::VBox->new(0, 3);
     $frame->Add($vbox2);
     
-    my $image = Etk::Image::new_from_stock(DocumentNew, SizeBig);
+    my $image = Etk::Image->new(DocumentNew, SizeBig);
     $vbox2->Append($image);
     
     $combobox = Etk::Combobox->new();
@@ -816,7 +740,7 @@ sub combobox_window_show
     for( my $i = DocumentNew; 
 	$i <= FormatTextUnderline; $i++)
     {
-	my $image2 = Etk::Image::new_from_stock($i, SizeSmall);
+	my $image2 = Etk::Image->new($i, SizeSmall);
 	my $item = $combobox->ItemAppend($image2, Etk::Stock::label_get($i));
 #	$item->ColSet(1, Etk::Stock::label_get($i));
 	$item->DataSet($i);
@@ -875,11 +799,11 @@ sub _iconbox_folder_set
     my $folder = shift;
     my $file = undef;
     
-    $folder = %ENV->{HOME} if($folder eq "");
+    $folder = $ENV{HOME} if($folder eq "");
     return if($folder eq "");      
     
     $iconbox->Clear();
-    $iconbox->Append(Etk::Theme::icon_theme_get(), "actions/go-up_48", "..");
+    $iconbox->Append(Etk::Theme::IconGet(), "actions/go-up_48", "..");
     
     # Add directories
     opendir(DIR, $_iconbox_folder."/".$folder) or 
@@ -887,7 +811,7 @@ sub _iconbox_folder_set
     while (defined($file = readdir(DIR))) {
 	if (-d "$_iconbox_folder/$folder/$file" && $file  !~ /^\./)
 	{
-	    $iconbox->Append(Etk::Theme::icon_theme_get(), 
+	    $iconbox->Append(Etk::Theme::IconGet(), 
 		"places/folder_48", $file);
 	}
     }
@@ -903,12 +827,12 @@ sub _iconbox_folder_set
 	    $parts[-1] =~ tr [A-Z] [a-z];
 	    if($_iconbox_types{$parts[-1]})
 	    {
-		$iconbox->Append(Etk::Theme::icon_theme_get(), 
+		$iconbox->Append(Etk::Theme::IconGet(), 
 		    $_iconbox_types{$parts[-1]}, $file);
 	    }
 	    else
 	    {
-		$iconbox->Append(Etk::Theme::icon_theme_get(), 
+		$iconbox->Append(Etk::Theme::IconGet(), 
 		    "mimetypes/text-x-generic_48", $file);
 	    }
 	}
@@ -926,7 +850,7 @@ sub textview_window_show
 
     $win->Add($vbox);
 
-    my $button = Etk::Button::new_with_label("Tag Presentation");
+    my $button = Etk::Button->new("Tag Presentation");
     $button->SignalConnect("clicked", sub {
 
 	    my $win = Etk::Window->new();
@@ -987,7 +911,7 @@ sub textview_window_show
     });
     $vbox->Append($button);
 
-    $button = Etk::Button::new_with_label("Instant Messenger");
+    $button = Etk::Button->new("Instant Messenger");
     $button->SignalConnect("clicked", sub {
 
 	    my $win = Etk::Window->new();
@@ -1016,7 +940,7 @@ sub textview_window_show
 	    $vbox->Append($hbox, BoxStart, BoxNone, 0);
 
 	    for my $b (FormatTextBold, FormatTextItalic, FormatTextUnderline) {
-		    my $button = Etk::Button::new_from_stock($b);
+		    my $button = Etk::Button->new($b);
 		    $hbox->Append($button);
 	    }
 
@@ -1065,7 +989,7 @@ sub table_window_show
     
     my @widgets;
     
-    push @widgets, Etk::Button::new_from_stock(DocumentOpen);
+    push @widgets, Etk::Button->new(DocumentOpen);
     $widgets[0]->LabelSet("Set Icon");
     
     push @widgets, 
@@ -1086,10 +1010,10 @@ sub table_window_show
       Etk::Label->new("Wait exit"),
       Etk::CheckButton->new();
     
-    push @widgets, Etk::Button::new_from_stock(DialogCancel);
-    push @widgets, Etk::Button::new_from_stock(DocumentSave);
+    push @widgets, Etk::Button->new(DialogCancel);
+    push @widgets, Etk::Button->new(DocumentSave);
     
-    push @widgets, Etk::Image::new_from_file("images/test.png");
+    push @widgets, Etk::Image->new("images/test.png");
 
     push @widgets, Etk::Alignment->new(0.5, 0.5, 0, 0);
 
@@ -1158,11 +1082,11 @@ sub paned_window_show
     my $vbox2 = Etk::VBox->new(1, 0);
     $frame->Add($vbox2);
     
-    my $check_button = Etk::CheckButton::new_with_label("Child 1 Expand");
+    my $check_button = Etk::CheckButton->new("Child 1 Expand");
     $check_button->ActiveSet(1);
     $vbox2->Append($check_button, BoxStart, BoxExpandFill);
 
-    $check_button = Etk::CheckButton::new_with_label("Child 2 Expand");
+    $check_button = Etk::CheckButton->new("Child 2 Expand");
     $vbox2->Append($check_button);
 
     $frame = Etk::Frame->new("VPaned Properties");
@@ -1170,9 +1094,9 @@ sub paned_window_show
 
     $vbox2 = Etk::VBox->new(1, 0);
     $frame->Add($vbox2);
-    $check_button = Etk::CheckButton::new_with_label("Child 1 Expand");
+    $check_button = Etk::CheckButton->new("Child 1 Expand");
     $vbox2->Append($check_button, BoxStart, BoxExpandFill);
-    $check_button = Etk::CheckButton::new_with_label("Child 2 Expand");
+    $check_button = Etk::CheckButton->new("Child 2 Expand");
     $check_button->ActiveSet(1);
     $vbox2->Append($check_button, BoxStart, BoxExpandFill);
 
@@ -1188,7 +1112,7 @@ sub scrolledview_window_show
     $win->SizeRequestSet(180,180);
 
     my $scrolledview = Etk::ScrolledView->new();
-    my $button = Etk::Button::new_with_label("Scrolled View Test");
+    my $button = Etk::Button->new("Scrolled View Test");
     $button->SizeRequestSet(300, 300);
     $scrolledview->AddWithViewport($button);
 
@@ -1208,7 +1132,7 @@ sub notebook_window_show
 
     my @widgets;
     
-    push @widgets, Etk::Button::new_from_stock(DocumentOpen);
+    push @widgets, Etk::Button->new(DocumentOpen);
     $widgets[0]->LabelSet("Set Icon");
     
     push @widgets, 
@@ -1221,7 +1145,7 @@ sub notebook_window_show
       Etk::Label->new("Startup notify"), Etk::CheckButton->new(),
       Etk::Label->new("Wait exit"), Etk::CheckButton->new();
     
-    push @widgets, Etk::Image::new_from_file("images/test.png");
+    push @widgets, Etk::Image->new("images/test.png");
     push @widgets, Etk::Alignment->new(0.5, 0.5, 0, 0);
     $widgets[18]->Add($widgets[0]);
     my $table = Etk::Table->new(2, 10, 0);
@@ -1242,22 +1166,22 @@ sub notebook_window_show
     my $vbox2 = Etk::VBox->new(0, 3);
     $alignment->Add($vbox2);
  
-    my $button = Etk::Button::new_with_label("Normal Button");
+    my $button = Etk::Button->new("Normal Button");
     $vbox2->Append($button);
     
-    $button = Etk::ToggleButton::new_with_label("Toggle Button");
+    $button = Etk::ToggleButton->new("Toggle Button");
     $vbox2->Append($button);
     
-    $button = Etk::CheckButton::new_with_label("Check Button");
+    $button = Etk::CheckButton->new("Check Button");
     $vbox2->Append($button);
     
     $button = Etk::CheckButton->new();
     $vbox2->Append($button);
     
-    $button = Etk::RadioButton::new_with_label("Radio button");
+    $button = Etk::RadioButton->new("Radio button");
     $vbox2->Append($button);
 
-    my $button2 = Etk::RadioButton::new_from_widget($button);
+    my $button2 = Etk::RadioButton->new($button);
     $vbox2->Append($button2);
     
     $notebook->PageAppend("Tab 2 - Button test", $alignment);
@@ -1269,14 +1193,14 @@ sub notebook_window_show
     my $hbox = Etk::HBox->new(1, 0);
     $alignment->Add($hbox);
 
-    $button = Etk::Button::new_from_stock(GoPrevious);
+    $button = Etk::Button->new(GoPrevious);
     $button->LabelSet("Previous");
     $button->SignalConnect("clicked", sub {
 		$notebook->PagePrev();
     });
     $hbox->Append($button);
     
-    $button = Etk::Button::new_from_stock(GoNext);
+    $button = Etk::Button->new(GoNext);
     $button->LabelSet("Next");
     $button->SignalConnect("clicked", sub {
 		$notebook->PageNext();
@@ -1302,7 +1226,9 @@ sub colorpicker_window_show
 {
     my $win = Etk::Window->new();
     $win->TitleSet("Etk-Perl Color Picker Test");
-    $win->Add(Etk::Colorpicker->new());
+    my $cp = Etk::Colorpicker->new();
+    $cp->UseAlphaSet(1);
+    $win->Add($cp);
     
     $win->ShowAll();
 }
