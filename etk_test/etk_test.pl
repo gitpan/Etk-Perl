@@ -213,7 +213,7 @@ while (my ($key, $value) = each %buttons)
     $frames{ $value->{frame} }->{examples}++;
 }
 
-$win->SignalConnect("delete_event", \&main_window_delete);
+$win->SignalConnect("delete-event", \&main_window_delete);
 $win->BorderWidthSet(5);
 $win->ShowAll();
 
@@ -301,7 +301,7 @@ sub entry_window_show
     my $label_normal = Etk::Label->new("");
     $table->Attach($label_normal, 0, 1, 1, 1, 0, 0, TableHExpand | TableHFill);
 
-    $image->SignalConnect("mouse_click", sub {
+    $image->SignalConnect("mouse-click", sub {
 	    $label_normal->Set( $entry_normal->TextGet() )
     });
 
@@ -340,7 +340,7 @@ sub slider_window_show
     $table->AttachDefault($slider1, 0, 0, 0, 0);
     $label1 = Etk::Label->new("128.00");
     $table->Attach($label1, 0, 0, 1, 1, 0, 0, FillNone);
-    $slider1->SignalConnect("value_changed",
+    $slider1->SignalConnect("value-changed",
 	sub {
 	    my $self = shift;
 	    my $value = shift;
@@ -352,7 +352,7 @@ sub slider_window_show
     $table->AttachDefault($slider2, 1, 1, 0, 0);       
     $label2 = Etk::Label->new("128.00");
     $table->Attach($label2, 1, 1, 1, 1, 0, 0, FillNone);
-    $slider2->SignalConnect("value_changed",
+    $slider2->SignalConnect("value-changed",
 	sub {
 	    my $self = shift;
 	    my $value = shift;
@@ -457,7 +457,8 @@ sub tree_window_show
     my $status = Etk::StatusBar->new();
     $vbox->Append($status, BoxStart, BoxFill, 0);
 
-    $tree->SignalConnect("row_clicked",  sub {
+
+    $tree->SignalConnect("row-clicked",  sub {
 	my $self = shift;
 	my $row = shift;
 	my $event = shift;
@@ -470,7 +471,8 @@ sub tree_window_show
 
     });
 
-    $col4->SignalConnect("cell_value_changed", 
+
+    $col4->SignalConnect("cell-value-changed", 
 	sub {
 		my $self = shift;
 		my $row = shift;
@@ -481,7 +483,7 @@ sub tree_window_show
 	}
     );
 
-    $tree->SignalConnect("key_down", sub {
+    $tree->SignalConnect("key-down", sub {
     	my $self = shift;
 	my $event = shift;
 	if ($event->{keyname} eq "Delete") {
@@ -504,7 +506,7 @@ sub tree_window_show
     {
 	my $row = $tree->RowAppend();
 
-	$row->ModelFieldsSet(0, $mod1,  Etk::Theme::IconGet(), 
+	$row->ModelFieldsSet(0, $mod1,  Etk::Theme::IconPathGet(), 
 		Etk::Stock::KeyGet(PlacesUserHome, SizeSmall));
 	$row->ModelFieldsSet(0, $mod2, "Row " . (($i*3)+1));
 	$row->FieldsSet(0, $col2, 10.0);
@@ -513,7 +515,7 @@ sub tree_window_show
 
 
 	my $row2 = $tree->RowAppend($row);
-	$row2->ModelFieldsSet(0, $mod1,  Etk::Theme::IconGet(), 
+	$row2->ModelFieldsSet(0, $mod1,  Etk::Theme::IconPathGet(), 
 		Etk::Stock::KeyGet(PlacesUserHome, SizeSmall));
 	$row2->ModelFieldsSet(0, $mod2, "Row " . (($i*3)+2));
 	
@@ -522,7 +524,7 @@ sub tree_window_show
 	$row2->FieldsSet(0, $col4, 1);
 
 	my $row3 = $tree->RowAppend($row2);
-	$row3->ModelFieldsSet(0, $mod1,  Etk::Theme::IconGet(), 
+	$row3->ModelFieldsSet(0, $mod1,  Etk::Theme::IconPathGet(), 
 		Etk::Stock::KeyGet(PlacesUserHome, SizeSmall));
 	$row3->ModelFieldsSet(0, $mod2, "Row " . (($i*3)+3));
 	$row3->FieldsSet(0, $col2, 30.0);
@@ -532,6 +534,13 @@ sub tree_window_show
     }
 
     $tree->Thaw();
+
+    $col1->SortSet(  sub {
+	my ($col, $row1, $row2) = @_;
+	my $a = $row1->ModelFieldsGet($mod2);
+	my $b = $row2->ModelFieldsGet($mod2);
+	return $a cmp $b;
+    }, undef);
     
     $win->ShowAll();
 }
@@ -592,7 +601,7 @@ sub menu_window_show
     _menu_test_item_new("About", $menu, $statusbar);
    
     $menu = Etk::Menu->new();
-    $win->SignalConnect("mouse_down", sub { $menu->Popup() });
+    $win->SignalConnect("mouse-down", sub { $menu->Popup() });
     
     _menu_test_stock_item_new("Open", DocumentOpen, $menu, $statusbar);
     _menu_test_stock_item_new("Save", DocumentSave, $menu, $statusbar);
@@ -638,7 +647,7 @@ sub _menu_test_item_new
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
     	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
-    $menu_item->SignalConnect("deselected", 
+    $menu_item->SignalConnect("unselected", 
     	sub { $statusbar->MessagePop(0) });
     
     return $menu_item;
@@ -654,7 +663,7 @@ sub _menu_test_stock_item_new
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
     	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
-    $menu_item->SignalConnect("deselected", 
+    $menu_item->SignalConnect("unselected", 
     	sub { $statusbar->MessagePop(0) });
 
     return $menu_item;
@@ -669,7 +678,7 @@ sub _menu_test_check_item_new
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
     	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
-    $menu_item->SignalConnect("deselected", 
+    $menu_item->SignalConnect("unselected", 
     	sub { $statusbar->MessagePop(0) });
 
     return $menu_item;
@@ -691,7 +700,7 @@ sub _menu_test_radio_item_new
     $menubar->Append($menu_item);
     $menu_item->SignalConnect("selected", 
     	sub { $statusbar->MessagePush($menu_item->LabelGet(), 0) });
-    $menu_item->SignalConnect("deselected", 
+    $menu_item->SignalConnect("unselected", 
     	sub { $statusbar->MessagePop(0) });
 
     return $menu_item;
@@ -705,6 +714,30 @@ sub _menu_seperator_new
     return $menu_item;
 }
 
+sub __combobox_entry_populate 
+{
+    my $combo = shift;
+    my $dir = shift;
+
+    $combo->Clear();
+    $combo->ItemPrepend(
+    		Etk::Image::new_from_stock(PlacesFolder, SizeSmall),
+		"..");
+
+    while (<$dir/*>) {
+	    if (-d) {
+		$combo->ItemPrepend(
+			Etk::Image::new_from_stock(PlacesFolder, SizeSmall),
+			$_);
+	    } else {
+		$combo->ItemPrepend(
+			Etk::Image::new_from_stock(TextXGeneric, SizeSmall),
+			$_);
+	    }
+
+    }
+
+}
 
 sub combobox_window_show
 {
@@ -721,6 +754,19 @@ sub combobox_window_show
     $combobox->ItemAppend("Test 2");
     $combobox->ItemAppend("Test 3");    
 
+    $frame = Etk::Frame->new("Entry combobox");
+    $vbox->Append($frame);
+
+    $combobox = Etk::Combobox::Entry->new();
+    $combobox->SignalConnect("active-item-changed", sub {
+	    print "TODO\n";
+    });
+    $combobox->ColumnAdd(EntryImage, 24, EntryNone, 0.0);
+    $combobox->ColumnAdd(EntryLabel, 75, EntryExpand, 0.0);
+    $combobox->Build();
+    $frame->Add($combobox);
+    __combobox_entry_populate($combobox, ".");
+
     $frame = Etk::Frame->new("Some stock icons");
     $vbox->Append($frame);
     
@@ -731,8 +777,8 @@ sub combobox_window_show
     $vbox2->Append($image);
     
     $combobox = Etk::Combobox->new();
-    $combobox->ColumnAdd(ColumnTypeImage, 24, 0, 0, 0, 0.0, 0.5);
-    $combobox->ColumnAdd(ColumnTypeLabel, 75, 1, 0, 0, 0.0, 0.5);
+    $combobox->ColumnAdd(ColumnTypeImage, 24, 0, 0.0);
+    $combobox->ColumnAdd(ColumnTypeLabel, 75, 1, 0.0);
     $combobox->Build();
     
     $vbox2->Append($combobox);
@@ -748,7 +794,7 @@ sub combobox_window_show
 
     $combobox->ActiveItemSet($combobox->ActiveItemGet());
     
-    $combobox->SignalConnect("active_item_changed", 
+    $combobox->SignalConnect("active-item-changed", 
 	sub {
 	    my $item = $combobox->ActiveItemGet();
 	    my $stock_id = $item->DataGet();
@@ -774,7 +820,7 @@ sub iconbox_window_show
     $model->IconGeometrySet(20, 0, 130, 16, 0.0, 0.5);
     _iconbox_folder_set($iconbox, "");
     
-    $iconbox->SignalConnect("mouse_down", 
+    $iconbox->SignalConnect("mouse-down", 
 	sub {
 	    my $self = shift;
 	    my $event = shift;
@@ -803,7 +849,7 @@ sub _iconbox_folder_set
     return if($folder eq "");      
     
     $iconbox->Clear();
-    $iconbox->Append(Etk::Theme::IconGet(), "actions/go-up_48", "..");
+    $iconbox->Append(Etk::Theme::IconPathGet(), "actions/go-up_48", "..");
     
     # Add directories
     opendir(DIR, $_iconbox_folder."/".$folder) or 
@@ -811,7 +857,7 @@ sub _iconbox_folder_set
     while (defined($file = readdir(DIR))) {
 	if (-d "$_iconbox_folder/$folder/$file" && $file  !~ /^\./)
 	{
-	    $iconbox->Append(Etk::Theme::IconGet(), 
+	    $iconbox->Append(Etk::Theme::IconPathGet(), 
 		"places/folder_48", $file);
 	}
     }
@@ -827,12 +873,12 @@ sub _iconbox_folder_set
 	    $parts[-1] =~ tr [A-Z] [a-z];
 	    if($_iconbox_types{$parts[-1]})
 	    {
-		$iconbox->Append(Etk::Theme::IconGet(), 
+		$iconbox->Append(Etk::Theme::IconPathGet(), 
 		    $_iconbox_types{$parts[-1]}, $file);
 	    }
 	    else
 	    {
-		$iconbox->Append(Etk::Theme::IconGet(), 
+		$iconbox->Append(Etk::Theme::IconPathGet(), 
 		    "mimetypes/text-x-generic_48", $file);
 	    }
 	}
@@ -953,7 +999,7 @@ sub textview_window_show
 		"<b><font color=#a82f2f>David P:</font></b> "
 	    );
 	    my $num_messages = 0;
-	    $editor_view->SignalConnect("key_down", sub {
+	    $editor_view->SignalConnect("key-down", sub {
 		    my $self = shift->TextblockGet();
 		    my $event = shift;
 		    my $message_tb = shift->TextblockGet();
@@ -1239,7 +1285,7 @@ sub filechooser_window_show
     $win->TitleSet("Etk-Perl Filechooser Test");
     
     my $fc = Etk::Filechooser->new();
-    $win->PackInMainArea($fc, 1, 1, 0, 0);
+    $win->PackInMainArea($fc, BoxStart, BoxExpandFill, 0);
     $win->ButtonAdd("Open", 1);
     $win->ButtonAdd("Close", 2);
 

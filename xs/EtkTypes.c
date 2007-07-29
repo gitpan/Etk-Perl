@@ -147,6 +147,10 @@ void __etk_perl_init() {
 	__("Etk_Viewport",		"Etk::Viewport");
 	__("Etk_Widget",		"Etk::Widget");
 	__("Etk_Window",		"Etk::Window");
+	__("Etk_Box_Cell",		"Etk::BoxCell");
+	__("Etk_Combobox_Entry",	"Etk::Combobox::Entry");
+	__("Etk_Combobox_Entry_Item",	"Etk::Combobox::Entry::Item");
+	__("Etk_Combobox_Entry_Column",	"Etk::Combobox::Entry::Column");
 
 	__("Ecore_Timer",		"Etk::Timer");
 	__("Evas",		"Evas");
@@ -161,9 +165,12 @@ void __etk_perl_init() {
 	__("Tree::Col", "Object");
 	__("Widget", "Object");
 
+		__("BoxCell", "Widget");
 		__("Colorpicker", "Widget");
 		__("Combobox", "Widget");
 		__("Combobox::Item", "Widget");
+		__("Combobox::Entry", "Widget");
+		__("Combobox::Entry::Item", "Widget");
 		__("Container", "Widget");
 			__("Bin", "Container");
 				__("Alignment", "Bin");

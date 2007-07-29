@@ -2,30 +2,42 @@ use 5.008004;
 use ExtUtils::MakeMaker;
 use Devel::PPPort;
 
-# dependency check
-print "Checking for Etk...";
-my $etklib = `pkg-config --variable=version etk`;
-die "pkg-config can't find etk, make sure that etk is installed, and that your PKG_CONFIG_PATH is correct" unless $etklib;
-print "Ok\n";
+# Add the boot section
+my $debug = $ARGV[0] eq "debug" ? 1 : 0;
+my @list = grep { $_ ne "Etk" } map { s/\.xs$//; $_  } <*.xs>;
 
-Devel::PPPort::WriteFile();
+open IN, "<", 'Etk.xs.in' or die "Missing Etk.xs.in file: $!\n";
+my $contents;
+{ 
+	local $/;
+	$contents = <IN>;
+}
+close IN;
+
+open OUT, ">", 'Etk.xs' or die "Cannot write Etk.xs file: $!\n";
+print OUT $contents;
+print OUT qq|BOOT:\n|;
+foreach (@list) {
+	print OUT qq|printf("Booting $_\\n");\n| if $debug;
+	print OUT qq|PUSHMARK(SP);\nboot_Etk__$_();\nPUTBACK;\n|;
+}
+close OUT;
+
 
 WriteMakefile(
     DISTNAME          => 'Etk-Perl',
     NAME              => 'Etk',
-    VERSION_FROM      => 'lib/Etk.pm', 
+    VERSION_FROM      => '../lib/Etk.pm', 
     PREREQ_PM         => {}, 
     ($] >= 5.005 ?     
       (ABSTRACT       => 'Perl bindings for the Enlightened ToolKit (Etk)',
        AUTHOR         => q|Chady 'Leviathan' Kassouf <chady.kassouf@gmail.com>|) : ()),
-    LIBS              => [`pkg-config --libs etk`], 
+    LIBS              => [`pkg-config --libs etk`],
     DEFINE            => '', #'-DDEBUG', 
     INC               => "-g -I. `pkg-config --cflags etk`", 
     XSPROTOARG        => '-noprototypes',
-    test              => {TESTS=>'t/Etk/*.t'},
-    clean             => {FILES=>"ppport.h"},
     OBJECT            => '$(O_FILES)', 
-    DIR               => ["xs"],
+    clean             => {FILES=>"Etk.xs"},
 );
 
 sub MY::test_via_harness {

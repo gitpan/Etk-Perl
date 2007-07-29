@@ -8,6 +8,7 @@ Etk_Bin *					T_PTROBJ_ETK
 Etk_Bool					T_IV
 Etk_Bool *					T_PV
 Etk_Box *					T_PTROBJ_ETK
+Etk_Box_Cell *					T_PTROBJ_ETK
 Etk_Box_Group					T_IV
 Etk_Box_Fill_Policy				T_IV
 Etk_HBox *					T_PTROBJ_ETK
@@ -22,6 +23,12 @@ Etk_Colorpicker_Mode				T_IV
 Etk_Combobox *					T_PTROBJ_ETK
 Etk_Combobox_Column_Type			T_IV
 Etk_Combobox_Item *				T_PTROBJ_ETK
+Etk_Combobox_Fill_Policy			T_IV
+Etk_Combobox_Entry *				T_PTROBJ_ETK
+Etk_Combobox_Entry_Item *			T_PTROBJ_ETK
+Etk_Combobox_Entry_Column_Type			T_IV
+Etk_Combobox_Entry_Fill_Policy			T_IV
+Etk_Combobox_Entry_Column *			T_PTROBJ_ETK
 Etk_Constructor   				T_PTROBJ
 Etk_Container *					T_PTROBJ_ETK
 Etk_Destructor 					T_PTROBJ
@@ -83,6 +90,7 @@ Etk_Separator *					T_PTROBJ_ETK
 Etk_HSeparator *				T_PTROBJ_ETK
 Etk_VSeparator *				T_PTROBJ_ETK
 Etk_Slider *					T_PTROBJ_ETK
+Etk_Slider_Update_Policy			T_IV
 Etk_HSlider *					T_PTROBJ_ETK
 Etk_VSlider *					T_PTROBJ_ETK
 Etk_HScrollbar *				T_PTROBJ_ETK

@@ -34,7 +34,8 @@ our @ISA = qw/Exporter/;
 
 our %EXPORT_TAGS = (
    box		=> [qw/BoxStart BoxEnd BoxNone BoxExpand BoxFill BoxExpandFill/],
-   combobox	=> [qw/ColumnTypeLabel ColumnTypeImage ColumnTypeOther/],
+   combobox	=> [qw/ColumnTypeLabel ColumnTypeImage ColumnTypeOther EntryImage EntryLabel EntryOther
+    EntryNone EntryExpand EntryFill EntryExpandFill/],
    fillpolicy	=> [qw/FillNone HFill VFill HExpand VExpand/],
    messagedialog=> [qw/None Warning Question Error
     ButtonsNone ButtonsOk ButtonsClose ButtonsCancel ButtonsYesNo ButtonsOkCancel/],
@@ -62,6 +63,7 @@ our %EXPORT_TAGS = (
    popupwindow	=> [qw/BelowRight BelowLeft AboveRight AboveLeft/],
    window	=> [qw/Normal Above Below/],
    swallow	=> [qw/None IncompatibleParent NotRealized NoPart/],
+   slider	=> [qw/Continuous Discontinuous Delayed/],
    );
 
 my @all = ();
@@ -89,7 +91,14 @@ use constant
 {
     ColumnTypeLabel => 0,
     ColumnTypeImage => 1,
-    ColumnTypeOther => 2
+    ColumnTypeOther => 2,
+    EntryLabel	=> 0,
+    EntryImage	=> 1,
+    EntryOther	=> 2,
+    EntryNone	=> 0,
+    EntryExpand	=> 1 << 0,
+    EntryFill	=> 1 << 1,
+    EntryExpandFill	=> (1 << 0) | (1 << 1)
 };
 
 
@@ -277,8 +286,8 @@ use constant {
 
 # entry
 use constant {
-   ImagePrimary=>1,
-   ImageSecondary=>2
+   ImagePrimary=>0,
+   ImageSecondary=>1
 };
 
 # popup window
@@ -302,3 +311,11 @@ use constant {
    NotRealized=>2,
    NoPart=>3
 };
+
+# slider
+use constant {
+   Continuous=>0,
+   Discontinuous=>1,
+   Delayed=>2
+};
+
