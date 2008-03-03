@@ -50,6 +50,8 @@ Etk_Image *					T_PTROBJ_ETK
 Etk_Image_Source				T_IV
 Etk_Label *					T_PTROBJ_ETK
 Etk_Marshaller					T_PTROBJ
+Etk_Mdi_Window *				T_PTROBJ_ETK
+Etk_Mdi_Area *				T_PTROBJ_ETK
 Etk_Menu *					T_PTROBJ_ETK
 Etk_Menu_Bar *					T_PTROBJ_ETK
 Etk_Menu_Item *					T_PTROBJ_ETK
@@ -83,6 +85,7 @@ Etk_Scrolled_View_Policy			T_IV
 Etk_Scrolled_View_Policy *			T_PTROBJ
 Etk_Signal *					T_PTROBJ
 Etk_Signal_Callback *				T_PTROBJ
+const Etk_Signal_Callback *			T_PTROBJ
 Etk_Signal_Callback_Function			T_CALLBACK
 Etk_Size *					T_SIZE
 Etk_Statusbar *					T_PTROBJ_ETK
